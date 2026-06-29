@@ -51,6 +51,16 @@ db.exec(`
     created_at  TEXT    NOT NULL DEFAULT (datetime('now'))
   );
 
+  -- Melodia-alvo de cada naipe em cada hino (linha de voz real)
+  CREATE TABLE IF NOT EXISTS voice_lines (
+    id          INTEGER PRIMARY KEY AUTOINCREMENT,
+    hymn_id     INTEGER NOT NULL REFERENCES hymns(id) ON DELETE CASCADE,
+    voice_type  TEXT    NOT NULL,      -- 'soprano' | 'contralto' | 'tenor' | 'baixo'
+    notes_text  TEXT    NOT NULL,      -- ex.: 'C4 D4 E4:2 F4' (Nota:tempos, tempo padrão 1)
+    updated_at  TEXT    NOT NULL DEFAULT (datetime('now')),
+    UNIQUE (hymn_id, voice_type)
+  );
+
   -- Resultado agregado de cada sessão de ensaio (treino de voz)
   CREATE TABLE IF NOT EXISTS practice_sessions (
     id              INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -80,8 +90,17 @@ function seed() {
 
   // Hinos de exemplo
   const insHymn = db.prepare('INSERT INTO hymns (title, music_key, bpm) VALUES (?, ?, ?)');
-  insHymn.run('Hino da Cantata — Glória nas Alturas', 'C', 84);
+  const h1 = insHymn.run('Hino da Cantata — Glória nas Alturas', 'C', 84).lastInsertRowid;
   insHymn.run('Aleluia ao Cordeiro', 'G', 72);
+
+  // Linhas de voz de exemplo para o 1º hino (melodia simples por naipe)
+  const insLine = db.prepare(
+    'INSERT INTO voice_lines (hymn_id, voice_type, notes_text) VALUES (?, ?, ?)'
+  );
+  insLine.run(h1, 'soprano',   'C5 D5 E5 F5 G5:2 F5 E5 D5 C5:2');
+  insLine.run(h1, 'contralto', 'G4 A4 G4 A4 C5:2 A4 G4 A4 G4:2');
+  insLine.run(h1, 'tenor',     'E4 F4 G4 A4 C5:2 A4 G4 F4 E4:2');
+  insLine.run(h1, 'baixo',     'C3 C3 G3 G3 C4:2 G3 E3 G3 C3:2');
 
   console.log('[db] Seed criado. Maestro: maestro@admoema.com.br / senha: admoema123');
 }

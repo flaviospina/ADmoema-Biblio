@@ -121,7 +121,20 @@ tr:last-child td { border-bottom: none; }
 .gauge .needle { position: absolute; top: 8px; bottom: 8px; width: 6px; border-radius: 3px; background: var(--brand); left: 50%; transform: translateX(-50%); transition: left .08s linear, background .15s; }
 .gauge .scale { position: absolute; bottom: 4px; width: 100%; display: flex; justify-content: space-between; padding: 0 8px; color: var(--muted); font-size: 10px; }
 .status-line { font-size: 15px; font-weight: 600; min-height: 22px; }
-.mic-controls { display: flex; gap: 12px; justify-content: center; margin-top: 8px; }
+.mic-controls { display: flex; gap: 12px; justify-content: center; margin-top: 8px; flex-wrap: wrap; }
+
+/* melodia / linha de voz */
+.melody-row { margin: 6px 0 4px; }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.note-chip {
+  display: inline-flex; align-items: center; justify-content: center; min-width: 40px;
+  padding: 7px 10px; border-radius: 9px; background: var(--bg-soft); border: 1px solid var(--line);
+  font-weight: 600; font-size: 13px; color: var(--muted); transition: all .12s;
+}
+.note-chip.current { background: var(--brand); color: #1a1205; border-color: var(--brand); transform: translateY(-2px); }
+.note-chip.hit { background: rgba(62,207,142,.18); color: var(--good); border-color: var(--good); }
+.note-chip.miss { background: rgba(255,107,107,.16); color: var(--bad); border-color: var(--bad); }
+.note-chip.silent { opacity: .4; }
 
 .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid var(--line); border-top-color: var(--brand); border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }

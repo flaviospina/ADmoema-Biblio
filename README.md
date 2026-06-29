@@ -62,6 +62,8 @@ client/                 # Frontend (HTML + JS modular + Chart.js)
 |--------|------|--------|
 | POST | `/api/auth/register` · `/api/auth/login` | público |
 | GET | `/api/me` | autenticado |
+| GET | `/api/hymns` · POST (maestro) | criar hino |
+| GET/PUT | `/api/hymns/:id/voice-lines` | melodia por naipe (PUT: maestro) |
 | POST/GET | `/api/sessions` · `/api/sessions/mine` | coralista |
 | GET/POST | `/api/materials` | ver: todos · criar: maestro |
 | GET | `/api/admin/dashboard` | maestro |
@@ -71,11 +73,14 @@ client/                 # Frontend (HTML + JS modular + Chart.js)
 
 ## 🗺️ Roadmap (entrega por etapas)
 
-- [x] **Etapa 1 — Fundação** *(esta entrega)*: autenticação criptografada + papéis,
+- [x] **Etapa 1 — Fundação**: autenticação criptografada + papéis,
   banco de dados, ferramenta de ensaio de voz com afinação em tempo real, dashboards
   navegáveis, gráficos de evolução, relatórios de acesso/naipe e biblioteca de materiais.
-- [ ] **Etapa 2** — Refino da análise de timbre por naipe e exercícios atrelados às notas
-  reais de cada hino (melodia-alvo por voz).
+- [x] **Etapa 2 — Melodia-alvo por naipe** *(esta entrega)*: o maestro define a linha de
+  voz real de cada naipe em cada hino (`Hinos & melodias`); o ensaio do coralista passa a
+  seguir essa melodia nota a nota, com destaque da nota atual, pontuação por acerto
+  (`x/n notas no tom`) e botão **🔊 Ouvir melodia** (tom de referência). Inclui editor de
+  hinos (título/tom/BPM) e linhas de voz por naipe.
 - [ ] **Etapa 3** — Relatórios avançados (metas, frequência de ensaio, alertas para o maestro).
 - [ ] **Etapa 4** — Biblioteca rica (áudios por naipe, sincronização letra/cifra com o ensaio).
 - [ ] **Etapa 5** — Polimento, deploy e integração com admoema.com.br.

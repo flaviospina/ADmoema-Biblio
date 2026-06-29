@@ -86,6 +86,7 @@ function Shell(active, contentFn) {
     ['#/admin', '📊', 'Dashboard'],
     ['#/admin/acessos', '🏠', 'Quem ensaia em casa'],
     ['#/admin/naipes', '🎚️', 'Relatório por naipe'],
+    ['#/admin/hinos', '🎵', 'Hinos & melodias'],
     ['#/admin/coralistas', '👥', 'Coralistas'],
     ['#/admin/materiais', '📚', 'Materiais'],
   ] : [
@@ -343,6 +344,107 @@ async function AdminNaipesView(root) {
   }
 }
 
+// ---------------------------------------------------------------- MAESTRO: hinos & melodias
+async function AdminHinosView(root) {
+  const NAIPES = ['soprano', 'contralto', 'tenor', 'baixo'];
+  root.innerHTML = '<h2 class="section-title">Hinos & melodias</h2><p class="muted">Carregando…</p>';
+  const { hymns } = await api('/hymns');
+  let selectedId = hymns[0]?.id || null;
+
+  root.innerHTML = `
+    <h2 class="section-title">Hinos & melodias</h2>
+    <div class="grid cols-2">
+      <div class="card"><h3>Novo hino</h3>
+        <div class="field"><label>Título</label><input id="h_title" /></div>
+        <div class="row">
+          <div class="field" style="flex:1"><label>Tonalidade</label><input id="h_key" placeholder="C, G, D…" /></div>
+          <div class="field" style="flex:1"><label>BPM</label><input id="h_bpm" type="number" value="84" /></div>
+        </div>
+        <div class="error" id="h_err"></div>
+        <button class="btn" id="h_save">Criar hino</button>
+      </div>
+      <div class="card"><h3>Hinos cadastrados</h3>
+        <div id="h_list"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:18px"><h3>Linha de voz por naipe (melodia-alvo)</h3>
+      <p class="muted" style="font-size:13px">Digite as notas separadas por espaço, no formato <b>Nota[:tempos]</b> — ex.: <code>C4 D4 E4:2 F4 G4</code>. O coralista vai ensaiar exatamente a linha do seu naipe.</p>
+      <div class="field"><label>Hino</label><select id="vl_hymn">${hymns.map((h) => `<option value="${h.id}">${h.title}</option>`).join('')}</select></div>
+      <div id="vl_editor"></div>
+    </div>`;
+
+  function renderHymnList() {
+    root.querySelector('#h_list').innerHTML = hymns.length
+      ? `<table><thead><tr><th>Título</th><th>Tom</th><th>BPM</th></tr></thead><tbody>
+          ${hymns.map((h) => `<tr><td>${h.title}</td><td>${h.music_key || '—'}</td><td>${h.bpm || '—'}</td></tr>`).join('')}
+        </tbody></table>`
+      : '<p class="muted">Nenhum hino ainda.</p>';
+  }
+  renderHymnList();
+
+  root.querySelector('#h_save').onclick = async () => {
+    const err = root.querySelector('#h_err'); err.textContent = '';
+    try {
+      await api('/hymns', { method: 'POST', body: {
+        title: root.querySelector('#h_title').value,
+        music_key: root.querySelector('#h_key').value,
+        bpm: root.querySelector('#h_bpm').value,
+      }});
+      AdminHinosView(root);
+    } catch (e) { err.textContent = e.message; }
+  };
+
+  const vlHymn = root.querySelector('#vl_hymn');
+  if (selectedId) vlHymn.value = selectedId;
+  vlHymn.onchange = loadEditor;
+
+  async function loadEditor() {
+    const id = vlHymn.value;
+    const editor = root.querySelector('#vl_editor');
+    editor.innerHTML = '<p class="muted">Carregando…</p>';
+    const { voice_lines } = await api(`/hymns/${id}/voice-lines`);
+    const byVoice = Object.fromEntries(voice_lines.map((l) => [l.voice_type, l.notes_text]));
+    editor.innerHTML = NAIPES.map((v) => `
+      <div class="field">
+        <label>${badge(v)} ${v}</label>
+        <textarea data-voice="${v}" style="min-height:60px" placeholder="Ex.: C4 D4 E4 F4 G4">${byVoice[v] || ''}</textarea>
+        <div class="row" style="justify-content:space-between;margin-top:6px">
+          <span class="muted" style="font-size:12px" id="info_${v}"></span>
+          <button class="btn" data-save="${v}">Salvar linha de ${v}</button>
+        </div>
+      </div>`).join('');
+
+    editor.querySelectorAll('textarea').forEach((ta) => {
+      const v = ta.dataset.voice;
+      const info = editor.querySelector(`#info_${v}`);
+      const upd = () => {
+        const valid = melodyIsValid(ta.value);
+        const n = melodyIsValid(ta.value) ? parseMelody(ta.value).length : 0;
+        info.innerHTML = !ta.value.trim() ? 'vazio'
+          : valid ? `<span style="color:var(--good)">✓ ${n} notas reconhecidas</span>`
+          : '<span style="color:var(--bad)">⚠ formato inválido</span>';
+      };
+      ta.oninput = upd; upd();
+    });
+
+    editor.querySelectorAll('[data-save]').forEach((btn) => {
+      btn.onclick = async () => {
+        const v = btn.dataset.save;
+        const ta = editor.querySelector(`textarea[data-voice="${v}"]`);
+        if (!melodyIsValid(ta.value)) { editor.querySelector(`#info_${v}`).innerHTML = '<span style="color:var(--bad)">⚠ corrija o formato antes de salvar</span>'; return; }
+        btn.disabled = true; btn.textContent = 'Salvando…';
+        try {
+          await api(`/hymns/${id}/voice-lines`, { method: 'PUT', body: { voice_type: v, notes_text: ta.value } });
+          btn.textContent = '✓ Salvo';
+          setTimeout(() => { btn.disabled = false; btn.textContent = `Salvar linha de ${v}`; }, 1200);
+        } catch (e) { btn.disabled = false; btn.textContent = `Salvar linha de ${v}`; editor.querySelector(`#info_${v}`).textContent = e.message; }
+      };
+    });
+  }
+  if (selectedId) loadEditor();
+  else root.querySelector('#vl_editor').innerHTML = '<p class="muted">Crie um hino primeiro.</p>';
+}
+
 // ---------------------------------------------------------------- MAESTRO: coralistas
 async function AdminCoralistasView(root) {
   root.innerHTML = '<h2 class="section-title">Coralistas</h2><p class="muted">Carregando…</p>';
@@ -400,6 +502,7 @@ const routes = {
   '#/admin': () => Shell('#/admin', AdminDashView),
   '#/admin/acessos': () => Shell('#/admin/acessos', AdminAcessosView),
   '#/admin/naipes': () => Shell('#/admin/naipes', AdminNaipesView),
+  '#/admin/hinos': () => Shell('#/admin/hinos', AdminHinosView),
   '#/admin/coralistas': () => Shell('#/admin/coralistas', AdminCoralistasView),
   '#/admin/materiais': () => Shell('#/admin/materiais', (r) => MateriaisView(r, true)),
 };

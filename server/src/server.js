@@ -89,6 +89,30 @@ app.post('/api/hymns', requireAuth, requireMaestro, (req, res) => {
   res.status(201).json({ hymn: db.prepare('SELECT * FROM hymns WHERE id = ?').get(info.lastInsertRowid) });
 });
 
+// Linhas de voz (melodia-alvo por naipe) de um hino
+app.get('/api/hymns/:id/voice-lines', requireAuth, (req, res) => {
+  const lines = db.prepare(
+    'SELECT id, voice_type, notes_text, updated_at FROM voice_lines WHERE hymn_id = ?'
+  ).all(Number(req.params.id));
+  res.json({ voice_lines: lines });
+});
+
+// Maestro cria/atualiza a melodia de um naipe (upsert)
+app.put('/api/hymns/:id/voice-lines', requireAuth, requireMaestro, (req, res) => {
+  const { voice_type, notes_text } = req.body || {};
+  if (!VOICE_TYPES.includes(voice_type)) return res.status(400).json({ error: 'Naipe inválido.' });
+  if (!notes_text || !notes_text.trim()) return res.status(400).json({ error: 'Informe as notas.' });
+  const hymn = db.prepare('SELECT id FROM hymns WHERE id = ?').get(Number(req.params.id));
+  if (!hymn) return res.status(404).json({ error: 'Hino não encontrado.' });
+  db.prepare(
+    `INSERT INTO voice_lines (hymn_id, voice_type, notes_text, updated_at)
+     VALUES (?, ?, ?, datetime('now'))
+     ON CONFLICT (hymn_id, voice_type)
+     DO UPDATE SET notes_text = excluded.notes_text, updated_at = datetime('now')`
+  ).run(Number(req.params.id), voice_type, notes_text.trim());
+  res.json({ ok: true });
+});
+
 // ============================ MATERIAIS =====================================
 
 app.get('/api/materials', requireAuth, (req, res) => {
