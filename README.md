@@ -29,6 +29,11 @@ do maestro**, com histórico de evolução por coralista.
 
 ## 🚀 Como rodar
 
+**Publicar online (link público, sem instalar nada):** veja o passo a passo em
+[`DEPLOY.md`](DEPLOY.md) — deploy gratuito no Render com HTTPS (necessário para o microfone).
+
+**Rodar localmente:**
+
 ```bash
 cd server
 npm install
