@@ -1,25 +1,28 @@
-// Tela de ensaio de voz do coralista.
-// Modo guiado: o sistema percorre a MELODIA real do naipe (linha de voz do hino,
-// definida pelo maestro) ou uma escala de aquecimento, e pontua nota a nota se o
-// coralista está no tom — comparando o pitch cantado à nota-alvo do seu naipe.
+// Tela de ensaio de voz do coralista — dois modos:
+//   • "Seguir as notas": percorre a linha do naipe nota a nota (para quem lê/acompanha).
+//   • "Ouça e repita": o sistema toca cada nota e o coralista imita (sem ler partitura).
+// A comparação é tolerante a oitava: cada voz canta na altura confortável do seu naipe.
 
 function TrainerView(root) {
   const user = Auth.current;
   const voice = user.voice_type || 'tenor';
   const range = VOICE_RANGES[voice] || VOICE_RANGES.tenor;
 
+  let mode = 'follow';      // 'follow' | 'echo'
   let hymns = [];
-  let melody = [];          // [{midi, beats, label}]
+  let melody = [];
   let bpm = 80;
   let currentHymn = null;
   let tracker = null;
   let synth = new RefSynth();
   let idx = 0;
   let noteStats = [];
-  let running = false;
+  let active = false;       // exercício em andamento
+  let collecting = false;   // acumulando frames da nota atual
   let noteTimer = null;
 
-  // Escala de aquecimento no centro do naipe (dó-ré-mi-fá-sol-fá-mi-ré-dó)
+  const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
   function warmupMelody() {
     const base = freqToNote((range.min + range.max) / 2).midi;
     return [0, 2, 4, 5, 7, 5, 4, 2, 0].map((s) => {
@@ -37,7 +40,12 @@ function TrainerView(root) {
           <span class="badge ${voice}">${range.label}</span>
         </div>
 
-        <div class="field" style="margin-top:14px">
+        <div class="tabs" style="margin-top:14px">
+          <button data-mode="follow" class="active">🎵 Seguir as notas</button>
+          <button data-mode="echo">👂 Ouça e repita</button>
+        </div>
+
+        <div class="field">
           <label>Hino / Cantata</label>
           <select id="hymnSel"><option value="">Aquecimento (escala)</option></select>
         </div>
@@ -63,14 +71,8 @@ function TrainerView(root) {
       </div>
 
       <div class="card">
-        <h3>Como funciona</h3>
-        <p class="muted" style="line-height:1.6">
-          1. Escolha o <b>hino</b> — o sistema carrega a <b>linha do seu naipe (${voice})</b>.<br>
-          2. Toque <b>🔊 Ouvir melodia</b> para memorizar as notas.<br>
-          3. Toque <b>Iniciar ensaio</b> e cante a vogal <b>“ah”</b> acompanhando cada nota destacada.<br>
-          4. Cada nota fica <span style="color:var(--good)">verde</span> se você acertou o tom e
-          <span style="color:var(--bad)">vermelha</span> se passou longe.
-        </p>
+        <h3 id="helpTitle">Como funciona</h3>
+        <div id="help"></div>
         <div id="result" style="margin-top:16px"></div>
       </div>
     </div>
@@ -81,7 +83,26 @@ function TrainerView(root) {
   const statusEl = el('#status'), targetEl = el('#target'), melodyRow = el('#melodyRow');
   const startBtn = el('#startBtn'), listenBtn = el('#listenBtn'), hymnSel = el('#hymnSel');
 
-  // ---- carregamento de hinos ------------------------------------------------
+  const HELP = {
+    follow: `<p class="muted" style="line-height:1.6">
+        Para quem consegue acompanhar a sequência de notas.<br>
+        1. Escolha o <b>hino</b> — carrega a <b>linha do seu naipe (${voice})</b>.<br>
+        2. Toque <b>🔊 Ouvir melodia</b> para memorizar.<br>
+        3. Toque <b>Iniciar</b> e cante “ah” acompanhando a nota <b>destacada</b>.<br>
+        Cada nota fica <span style="color:var(--good)">verde</span> (no tom) ou
+        <span style="color:var(--bad)">vermelha</span>.</p>`,
+    echo: `<p class="muted" style="line-height:1.6">
+        <b>Não precisa ler as notas.</b> Ideal para acompanhar “de ouvido”.<br>
+        1. Toque <b>Iniciar</b>.<br>
+        2. O sistema <b>🔊 toca uma nota</b> — apenas <b>ouça</b>.<br>
+        3. Quando aparecer <b>🎤 Sua vez!</b>, <b>cante a mesma nota</b> (a vogal “ah”).<br>
+        4. O sistema confere se você repetiu no tom e passa para a próxima.<br>
+        💡 Cante na altura confortável da sua voz — vale em qualquer oitava.</p>`,
+  };
+  function renderHelp() { el('#help').innerHTML = HELP[mode]; }
+  renderHelp();
+
+  // ---- hinos ----------------------------------------------------------------
   api('/hymns').then((d) => {
     hymns = d.hymns;
     hymnSel.innerHTML = '<option value="">Aquecimento (escala)</option>' +
@@ -120,7 +141,7 @@ function TrainerView(root) {
   function renderMelody(caption) {
     melodyRow.innerHTML = `<div class="muted" style="font-size:13px;margin-bottom:8px">${caption}</div>
       <div class="chips">${melody.map((n, i) =>
-        `<span class="note-chip" data-i="${i}">${n.label}</span>`).join('')}</div>`;
+        `<span class="note-chip" data-i="${i}">${mode === 'echo' ? (i + 1) : n.label}</span>`).join('')}</div>`;
     targetEl.innerHTML = melody.length ? `Nota-alvo: <b>${melody[0].label}</b>` : '';
   }
 
@@ -137,25 +158,20 @@ function TrainerView(root) {
     c.classList.add(silent ? 'silent' : hit ? 'hit' : 'miss');
   }
 
-  // ---- atualização em tempo real (tuner + coleta por nota) ------------------
+  // ---- tempo real -----------------------------------------------------------
   function onUpdate(p) {
     if (!p.freq) {
       noteEl.textContent = '—'; freqEl.textContent = 'cante mais forte…';
-      statusEl.textContent = ''; needle.style.left = '50%'; return;
+      needle.style.left = '50%'; return;
     }
     noteEl.innerHTML = `${p.note.name}<small>${p.note.octave}</small>`;
     freqEl.textContent = `${p.freq.toFixed(1)} Hz`;
     const cents = p.targetCents != null ? p.targetCents : p.cents;
     const clamped = Math.max(-50, Math.min(50, cents));
     needle.style.left = `${50 + clamped}%`;
-    if (Math.abs(cents) <= 25) {
-      needle.style.background = 'var(--good)'; statusEl.style.color = 'var(--good)';
-      statusEl.textContent = '✓ No tom!';
-    } else {
-      needle.style.background = 'var(--bad)'; statusEl.style.color = 'var(--warn)';
-      statusEl.textContent = cents < 0 ? '▲ Suba um pouco' : '▼ Abaixe um pouco';
-    }
-    if (running && noteStats[idx]) {
+    needle.style.background = Math.abs(cents) <= 50 ? 'var(--good)' : 'var(--bad)';
+
+    if (collecting && noteStats[idx]) {
       const st = noteStats[idx];
       st.frames++;
       const a = Math.abs(cents);
@@ -164,70 +180,110 @@ function TrainerView(root) {
     }
   }
 
-  // ---- engine guiado --------------------------------------------------------
+  // ---- engines --------------------------------------------------------------
   function noteDurSec(n) {
     const beatSec = Math.max(60 / bpm, 0.7);
-    return Math.max(n.beats * beatSec, 1.0);
+    return Math.max(n.beats * beatSec, 1.1);
+  }
+
+  function resetStats() { noteStats = melody.map(() => ({ frames: 0, inTune: 0, bestCents: 999 })); }
+  function evalNote(i) {
+    const st = noteStats[i];
+    const silent = st.frames < 3;
+    const hit = !silent && (st.inTune / st.frames) >= 0.35;
+    colorChip(i, hit, silent);
+    return hit;
+  }
+
+  async function openMic() {
+    tracker = new PitchTracker({ voiceType: voice, onUpdate, octaveTolerant: true });
+    await tracker.start();
   }
 
   async function startExercise() {
     synth.stop();
     startBtn.innerHTML = '<span class="spinner"></span>';
-    try {
-      tracker = new PitchTracker({ voiceType: voice, onUpdate });
-      await tracker.start();
-    } catch {
+    try { await openMic(); }
+    catch {
       startBtn.textContent = 'Iniciar ensaio';
       statusEl.style.color = 'var(--bad)';
       statusEl.textContent = 'Não foi possível acessar o microfone.';
       return;
     }
-    idx = 0;
-    noteStats = melody.map(() => ({ frames: 0, inTune: 0, bestCents: 999 }));
+    resetStats();
     melodyRow.querySelectorAll('.note-chip').forEach((c) =>
       c.classList.remove('hit', 'miss', 'silent', 'current'));
-    running = true;
+    el('#result').innerHTML = '';
+    active = true;
     startBtn.textContent = 'Parar';
     startBtn.onclick = () => finish(false);
     listenBtn.disabled = true;
-    el('#result').innerHTML = '';
-    playNote();
+    el('.tabs') && root.querySelectorAll('.tabs button').forEach((b) => b.disabled = true);
+    if (mode === 'follow') playFollowNote(0);
+    else runEcho();
   }
 
-  function playNote() {
-    if (!running) return;
+  // modo "seguir as notas": avanço contínuo
+  function playFollowNote(i) {
+    idx = i;
+    if (!active) return;
     if (idx >= melody.length) return finish(true);
     tracker.setTarget(melody[idx].midi);
     highlight(idx);
+    setStatus('🎤 Acompanhe a nota destacada');
+    collecting = true;
     noteTimer = setTimeout(() => {
-      const st = noteStats[idx];
-      const hit = st.frames > 0 && (st.inTune / st.frames) >= 0.4;
-      colorChip(idx, hit, st.frames === 0);
-      idx++;
-      playNote();
+      collecting = false;
+      evalNote(idx);
+      playFollowNote(idx + 1);
     }, noteDurSec(melody[idx]) * 1000);
   }
 
+  // modo "ouça e repita": chamada-e-resposta
+  async function runEcho() {
+    for (idx = 0; idx < melody.length; idx++) {
+      if (!active) return;
+      tracker.setTarget(melody[idx].midi);
+      highlight(idx);
+      collecting = false;
+      setStatus('🔊 Ouça a nota…');
+      await synth.playOne(melody[idx].midi, 0.95);
+      if (!active) return;
+      noteStats[idx] = { frames: 0, inTune: 0, bestCents: 999 };
+      setStatus('🎤 Sua vez! Cante a nota');
+      collecting = true;
+      await sleep(2600);
+      collecting = false;
+      if (!active) return;
+      evalNote(idx);
+    }
+    finish(true);
+  }
+
+  function setStatus(txt) { statusEl.style.color = 'var(--text)'; statusEl.textContent = txt; }
+
   async function finish(completed) {
     clearTimeout(noteTimer);
-    running = false;
+    active = false; collecting = false;
     const summary = tracker ? tracker.stop() : null;
     tracker = null;
+    synth.stop();
     listenBtn.disabled = false;
+    root.querySelectorAll('.tabs button').forEach((b) => b.disabled = false);
     startBtn.textContent = 'Iniciar ensaio';
     startBtn.onclick = startExercise;
     needle.style.left = '50%';
     melodyRow.querySelectorAll('.note-chip.current').forEach((c) => c.classList.remove('current'));
+    statusEl.textContent = '';
 
-    const sung = noteStats.filter((s) => s.frames > 0);
+    const sung = noteStats.filter((s) => s.frames >= 3);
     if (!sung.length) {
-      el('#result').innerHTML = '<p class="muted">Nenhuma voz detectada. Tente novamente mais perto do microfone.</p>';
+      el('#result').innerHTML = '<p class="muted">Nenhuma voz detectada. Aproxime-se do microfone e tente novamente.</p>';
       return;
     }
-    const hits = noteStats.filter((s) => s.frames > 0 && (s.inTune / s.frames) >= 0.4).length;
+    const hits = noteStats.filter((s) => s.frames >= 3 && (s.inTune / s.frames) >= 0.35).length;
     const noteAccuracy = Math.round((hits / melody.length) * 1000) / 10;
-    const avgCents = Math.round(
-      (sung.reduce((a, s) => a + s.bestCents, 0) / sung.length) * 10) / 10;
+    const avgCents = Math.round((sung.reduce((a, s) => a + s.bestCents, 0) / sung.length) * 10) / 10;
 
     try {
       await api('/sessions', { method: 'POST', body: {
@@ -238,17 +294,18 @@ function TrainerView(root) {
       }});
     } catch {}
 
-    const grade = noteAccuracy >= 80 ? 'good' : noteAccuracy >= 55 ? 'warn' : 'bad';
+    const grade = noteAccuracy >= 70 ? 'good' : noteAccuracy >= 45 ? 'warn' : 'bad';
     el('#result').innerHTML = `
       <div class="card" style="background:var(--card-2)">
-        <h3>${completed ? 'Resultado do ensaio' : 'Ensaio interrompido'}</h3>
+        <h3>${completed ? 'Resultado do ensaio' : 'Ensaio interrompido'}
+          <span class="muted" style="font-size:13px">· ${mode === 'echo' ? 'Ouça e repita' : 'Seguir as notas'}</span></h3>
         <div class="row" style="gap:24px">
           <div class="kpi"><span class="label">Notas no tom</span><span class="value">${hits}/${melody.length}</span></div>
           <div class="kpi"><span class="label">Afinação</span><span class="value">${noteAccuracy}%</span></div>
           <div class="kpi"><span class="label">Desvio médio</span><span class="value">${avgCents}¢</span></div>
         </div>
         <p style="margin-top:10px"><span class="badge ${grade}">
-          ${grade === 'good' ? 'Excelente! Você está no tom.' : grade === 'warn' ? 'Bom — continue praticando.' : 'Precisa melhorar a afinação.'}
+          ${grade === 'good' ? 'Muito bem! Você está no tom.' : grade === 'warn' ? 'Bom — continue praticando.' : 'Precisa melhorar a afinação.'}
         </span></p>
         <p class="muted" style="font-size:13px">Evolução registrada. Veja em “Minha evolução”.</p>
       </div>`;
@@ -269,10 +326,19 @@ function TrainerView(root) {
   }
 
   function stopAll() {
-    clearTimeout(noteTimer); running = false;
+    clearTimeout(noteTimer); active = false; collecting = false;
     if (tracker) { tracker.stop(); tracker = null; }
     synth.stop();
   }
+
+  // ---- troca de modo --------------------------------------------------------
+  root.querySelectorAll('.tabs button').forEach((b) => b.onclick = () => {
+    if (active) return;
+    mode = b.dataset.mode;
+    root.querySelectorAll('.tabs button').forEach((x) => x.classList.toggle('active', x === b));
+    renderHelp();
+    renderMelody(melodyRow.querySelector('.muted')?.innerHTML || '');
+  });
 
   startBtn.onclick = startExercise;
   listenBtn.onclick = listen;

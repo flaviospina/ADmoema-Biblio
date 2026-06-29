@@ -68,9 +68,10 @@ function corrAt(buf, lag, SIZE) {
 //  PitchTracker — encapsula o microfone + loop de análise.
 // ----------------------------------------------------------------------------
 class PitchTracker {
-  constructor({ voiceType = 'tenor', onUpdate } = {}) {
+  constructor({ voiceType = 'tenor', onUpdate, octaveTolerant = true } = {}) {
     this.range = VOICE_RANGES[voiceType] || VOICE_RANGES.tenor;
     this.onUpdate = onUpdate;
+    this.octaveTolerant = octaveTolerant; // aceita a nota certa em qualquer oitava
     this.running = false;
     this.samples = [];        // frequências detectadas
     this.centsErrors = [];    // |cents| em relação à nota alvo (se houver)
@@ -114,7 +115,11 @@ class PitchTracker {
 
       if (this.targetMidi != null) {
         const targetFreq = noteToFreq(this.targetMidi);
-        const centsOff = Math.round(1200 * Math.log2(f / targetFreq));
+        let semis = 12 * Math.log2(f / targetFreq);
+        // Tolerância de oitava: aproxima para a oitava mais próxima da nota-alvo,
+        // permitindo que cada voz cante na altura confortável do seu naipe.
+        if (this.octaveTolerant) semis -= 12 * Math.round(semis / 12);
+        const centsOff = Math.round(semis * 100);
         payload.targetCents = centsOff;
         payload.inTune = Math.abs(centsOff) <= 25;       // ±25 cents = "no tom"
         this.centsErrors.push(Math.abs(centsOff));

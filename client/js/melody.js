@@ -63,6 +63,25 @@ class RefSynth {
     });
   }
 
+  // Toca uma única nota (usado no modo "Ouça e repita").
+  async playOne(midi, durSec = 0.9) {
+    this.stop();
+    this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+    this.stopFlag = false;
+    const t = this.ctx.currentTime + 0.05;
+    const osc = this.ctx.createOscillator();
+    const gain = this.ctx.createGain();
+    osc.type = 'sine';
+    osc.frequency.value = noteToFreq(midi);
+    gain.gain.setValueAtTime(0, t);
+    gain.gain.linearRampToValueAtTime(0.28, t + 0.02);
+    gain.gain.setValueAtTime(0.28, t + durSec - 0.05);
+    gain.gain.linearRampToValueAtTime(0, t + durSec);
+    osc.connect(gain).connect(this.ctx.destination);
+    osc.start(t); osc.stop(t + durSec);
+    return new Promise((resolve) => { this._end = setTimeout(resolve, (durSec + 0.12) * 1000); });
+  }
+
   stop() {
     this.stopFlag = true;
     (this._timers || []).forEach(clearTimeout);

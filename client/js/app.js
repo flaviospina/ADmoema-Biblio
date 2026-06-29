@@ -149,8 +149,8 @@ async function EvolucaoView(root) {
   root.innerHTML = `
     <h2 class="section-title">Minha evolução</h2>
     <div class="grid cols-2">
-      <div class="card"><h3>Afinação ao longo do tempo (%)</h3><canvas id="accChart" height="200"></canvas></div>
-      <div class="card"><h3>Timbre — frequência central (Hz)</h3><canvas id="timbreChart" height="200"></canvas></div>
+      <div class="card"><h3>Afinação ao longo do tempo (%)</h3><div class="chart-box"><canvas id="accChart"></canvas></div></div>
+      <div class="card"><h3>Timbre — frequência central (Hz)</h3><div class="chart-box"><canvas id="timbreChart"></canvas></div></div>
     </div>
     <div class="card" style="margin-top:18px"><h3>Histórico</h3>
       <table><thead><tr><th>Data</th><th>Hino</th><th>Afinação</th><th>Desvio</th><th>Faixa (Hz)</th></tr></thead><tbody>
@@ -261,7 +261,7 @@ async function AdminDashView(root) {
       <div class="card kpi"><span class="label">Afinação média</span><span class="value">${kpis.accuracy_media}%</span></div>
     </div>
     <div class="grid cols-2" style="margin-top:18px">
-      <div class="card"><h3>Afinação média por naipe</h3>${por_naipe.length ? '<canvas id="naipeChart" height="220"></canvas>' : '<p class="muted">Sem dados de ensaio ainda.</p>'}</div>
+      <div class="card"><h3>Afinação média por naipe</h3>${por_naipe.length ? '<div class="chart-box"><canvas id="naipeChart"></canvas></div>' : '<p class="muted">Sem dados de ensaio ainda.</p>'}</div>
       <div class="card"><h3>Quem está no tom?</h3>
         ${por_naipe.length ? `<table><thead><tr><th>Naipe</th><th>Ensaios</th><th>Afinação</th><th>Desvio</th></tr></thead><tbody>
           ${por_naipe.map((n) => `<tr><td>${badge(n.voice_type)}</td><td>${n.sessoes}</td><td>${accBadge(n.accuracy)}</td><td>${n.cents}¢</td></tr>`).join('')}
@@ -293,7 +293,7 @@ async function AdminAcessosView(root) {
         </div>
       </div>
       <div class="card"><h3>Acessos por ${{ day: 'dia', week: 'semana', month: 'mês' }[period]}</h3>
-        ${buckets.length ? '<canvas id="accessChart" height="160"></canvas>' : '<p class="muted">Sem acessos registrados.</p>'}</div>
+        ${buckets.length ? '<div class="chart-box"><canvas id="accessChart"></canvas></div>' : '<p class="muted">Sem acessos registrados.</p>'}</div>
       <div class="card" style="margin-top:18px"><h3>Ranking de dedicação (coralistas)</h3>
         <table><thead><tr><th>#</th><th>Coralista</th><th>Naipe</th><th>Acessos</th><th>Último acesso</th></tr></thead><tbody>
           ${ranking.length ? ranking.map((r, i) => `<tr><td>${i + 1}</td><td>${r.name}</td><td>${badge(r.voice_type)}</td><td><b>${r.acessos}</b></td><td>${fmtDate(r.ultimo_acesso)}</td></tr>`).join('') : '<tr><td colspan="5" class="muted">Nenhum acesso ainda.</td></tr>'}
@@ -321,8 +321,8 @@ async function AdminNaipesView(root) {
   root.innerHTML = `
     <h2 class="section-title">Relatório por naipe</h2>
     <div class="grid cols-2">
-      <div class="card"><h3>Afinação média por naipe</h3>${por_naipe.length ? '<canvas id="vChart" height="220"></canvas>' : '<p class="muted">Sem dados.</p>'}</div>
-      <div class="card"><h3>Desvio médio (cents) — menor é melhor</h3>${por_naipe.length ? '<canvas id="cChart" height="220"></canvas>' : '<p class="muted">Sem dados.</p>'}</div>
+      <div class="card"><h3>Afinação média por naipe</h3>${por_naipe.length ? '<div class="chart-box"><canvas id="vChart"></canvas></div>' : '<p class="muted">Sem dados.</p>'}</div>
+      <div class="card"><h3>Desvio médio (cents) — menor é melhor</h3>${por_naipe.length ? '<div class="chart-box"><canvas id="cChart"></canvas></div>' : '<p class="muted">Sem dados.</p>'}</div>
     </div>
     <div class="card" style="margin-top:18px"><h3>Coralistas — quem está no tom e quem precisa melhorar</h3>
       <table><thead><tr><th>Coralista</th><th>Naipe</th><th>Ensaios</th><th>Afinação</th><th>Desvio</th><th>Situação</th><th>Último ensaio</th></tr></thead><tbody>
