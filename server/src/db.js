@@ -102,8 +102,14 @@ function seed() {
   insLine.run(h1, 'tenor',     'E4 F4 G4 A4 C5:2 A4 G4 F4 E4:2');
   insLine.run(h1, 'baixo',     'C3 C3 G3 G3 C4:2 G3 E3 G3 C3:2');
 
-  seedDemo();
-  console.log('[db] Seed criado. Maestro: maestro@admoema.com.br / senha: admoema123');
+  // Dados de demonstração só quando SEED_DEMO=true (caso contrário, base limpa).
+  if (String(process.env.SEED_DEMO).toLowerCase() === 'true') {
+    seedDemo();
+    console.log('[db] Dados de DEMONSTRAÇÃO inseridos (8 coralistas) · senha coral123');
+  } else {
+    console.log('[db] Base LIMPA (sem coralistas/ensaios). Defina SEED_DEMO=true para dados de demo.');
+  }
+  console.log('[db] Maestro: maestro@admoema.com.br / senha: admoema123');
 }
 
 // ---- Dados de demonstração (para o painel não nascer vazio) -----------------

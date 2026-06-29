@@ -56,6 +56,18 @@ já existe um arquivo de configuração pronto (`render.yaml`) neste projeto.
   (recurso pago do Render) apontando para `server/data` — eu te oriento quando
   decidirmos colocar em produção (Etapa 5).
 
+## Base limpa × dados de demonstração
+O sistema inicia com a **base limpa** (apenas a conta do maestro e os hinos de
+exemplo com as linhas de voz) — pronto para o seu teste, sem coralistas/ensaios.
+
+- **Quer os dados de demonstração** (8 coralistas, ensaios e acessos, como nas
+  telas de exemplo)? No Render: serviço → **Environment** → adicione a variável
+  **`SEED_DEMO`** com valor **`true`** e faça **Manual Deploy**. (Senha dos
+  coralistas demo: `coral123`.)
+- **Zerar tudo e recomeçar limpo:** no plano gratuito o banco é temporário, então
+  basta **reiniciar/republicar** o serviço (Render → **Manual Deploy → Deploy**).
+  Localmente, rode `npm run reset` dentro de `server/` e depois `npm start`.
+
 ## Alternativa: rodar no seu próprio computador
 Se preferir testar localmente, instale o **Node.js 22+** (https://nodejs.org),
 baixe o código (botão verde **Code → Download ZIP** na branch) e, no terminal

@@ -6,7 +6,8 @@
   "main": "src/server.js",
   "scripts": {
     "start": "node --experimental-sqlite src/server.js",
-    "dev": "node --watch --experimental-sqlite src/server.js"
+    "dev": "node --watch --experimental-sqlite src/server.js",
+    "reset": "node src/reset.js"
   },
   "engines": {
     "node": ">=22.5.0"
