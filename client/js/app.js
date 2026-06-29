@@ -12,12 +12,38 @@ const VOICE_OPTS = `
   <option value="tenor">Tenor</option>
   <option value="baixo">Baixo</option>`;
 
-function badge(voice) { return voice ? `<span class="badge ${voice}">${voice}</span>` : '<span class="muted">—</span>'; }
+const cap = (s) => s ? s.charAt(0).toUpperCase() + s.slice(1) : s;
+// Naipe como ponto colorido + rótulo
+function badge(voice) {
+  return voice ? `<span class="naipe v-${voice}"><i class="dot"></i>${cap(voice)}</span>` : '<span class="muted">—</span>';
+}
+function initials(name) {
+  const p = (name || '').trim().split(/\s+/);
+  return ((p[0]?.[0] || '') + (p[1]?.[0] || '')).toUpperCase() || '?';
+}
+function avatar(name, voice) {
+  return `<span class="avatar v-${voice || 'none'}">${initials(name)}</span>`;
+}
+function person(name, voice) {
+  return `<span class="person">${avatar(name, voice)}<b>${name}</b></span>`;
+}
 function fmtDate(s) { return s ? new Date(s.replace(' ', 'T') + 'Z').toLocaleString('pt-BR') : '—'; }
+function gradeOf(v) { return v >= 80 ? 'good' : v >= 55 ? 'warn' : 'bad'; }
 function accBadge(v) {
   if (v == null) return '<span class="muted">—</span>';
-  const c = v >= 80 ? 'good' : v >= 55 ? 'warn' : 'bad';
-  return `<span class="badge ${c}">${v}%</span>`;
+  return `<span class="badge ${gradeOf(v)}">${v}%</span>`;
+}
+// mini-barra inline (coluna de afinação)
+function miniBar(v, fillClass) {
+  if (v == null) return '<span class="muted">—</span>';
+  return `<span class="minibar"><span class="track"><span class="${fillClass || ('fill-' + gradeOf(v))}" style="width:${Math.max(0, Math.min(100, v))}%"></span></span><b>${v}%</b></span>`;
+}
+// barra horizontal de relatório
+function hBar(label, valueText, pct, fillClass) {
+  return `<div class="hbar-row">
+    <div class="hbar-head"><span>${label}</span><span class="val">${valueText}</span></div>
+    <div class="hbar"><span class="${fillClass}" style="width:${Math.max(2, Math.min(100, pct))}%"></span></div>
+  </div>`;
 }
 
 // ---------------------------------------------------------------- LOGIN
@@ -25,14 +51,15 @@ function LoginView() {
   let mode = 'login';
   app.innerHTML = `
     <div class="auth-wrap"><div class="card auth-card">
-      <div class="logo"><span class="mark">🎼</span><div>
-        <b>Coral ADMoema</b><small>Cantata · Ensaio Inteligente</small></div></div>
+      <div class="logo"><span class="mark">♪</span><div>
+        <b>ADMoema</b><small>Ministério Belém · Cantata</small></div></div>
       <div class="tabs">
         <button data-m="login" class="active">Entrar</button>
         <button data-m="register">Criar conta</button>
       </div>
       <div id="formArea"></div>
-      <div class="hint">Maestro de teste: <b>maestro@admoema.com.br</b> · senha <b>admoema123</b></div>
+      <div class="hint">Maestro: <b>maestro@admoema.com.br</b> · <b>admoema123</b><br>
+        Coralistas demo (ex.: <b>ana.lima@admoema.org</b>) · senha <b>coral123</b></div>
     </div></div>`;
 
   const formArea = app.querySelector('#formArea');
@@ -83,37 +110,50 @@ function LoginView() {
 function Shell(active, contentFn) {
   const u = Auth.current;
   const nav = Auth.isMaestro ? [
-    ['#/admin', '📊', 'Dashboard'],
-    ['#/admin/acessos', '🏠', 'Quem ensaia em casa'],
-    ['#/admin/naipes', '🎚️', 'Relatório por naipe'],
-    ['#/admin/hinos', '🎵', 'Hinos & melodias'],
-    ['#/admin/coralistas', '👥', 'Coralistas'],
-    ['#/admin/materiais', '📚', 'Materiais'],
+    ['#/admin', 'Painel'],
+    ['#/admin/acessos', 'Quem ensaia em casa'],
+    ['#/admin/naipes', 'Relatório por naipe'],
+    ['#/admin/hinos', 'Hinos & melodias'],
+    ['#/admin/coralistas', 'Coralistas'],
+    ['#/admin/materiais', 'Materiais'],
   ] : [
-    ['#/inicio', '🏠', 'Início'],
-    ['#/ensaiar', '🎤', 'Ensaiar minha voz'],
-    ['#/evolucao', '📈', 'Minha evolução'],
-    ['#/materiais', '📚', 'Materiais'],
+    ['#/inicio', 'Início'],
+    ['#/ensaiar', 'Ensaiar minha voz'],
+    ['#/evolucao', 'Minha evolução'],
+    ['#/materiais', 'Materiais'],
   ];
 
   app.innerHTML = `
+    <button class="menu-toggle" id="menuToggle" aria-label="Menu">☰</button>
+    <div class="backdrop" id="backdrop"></div>
     <div class="shell">
-      <aside class="sidebar">
-        <div class="logo"><span class="mark">🎼</span><div>
-          <b>ADMoema</b><small>${Auth.isMaestro ? 'Maestro' : 'Coralista'}</small></div></div>
-        ${nav.map(([h, ic, l]) =>
-          `<a class="nav-item ${active === h ? 'active' : ''}" href="${h}"><span class="ic">${ic}</span>${l}</a>`).join('')}
+      <aside class="sidebar" id="sidebar">
+        <div class="logo"><span class="mark">♪</span><div>
+          <b>ADMoema</b><small>Ministério Belém · 124</small></div></div>
+        ${nav.map(([h, l]) =>
+          `<a class="nav-item ${active === h ? 'active' : ''}" href="${h}">${l}</a>`).join('')}
         <div class="spacer"></div>
-        <button class="nav-item" id="logout"><span class="ic">⏻</span>Sair</button>
+        <button class="nav-item" id="logout">Sair</button>
       </aside>
       <main class="main">
         <div class="topbar">
-          <div class="who">Olá, <b>${u.name}</b> ${u.voice_type ? badge(u.voice_type) : ''}</div>
+          <div class="who">Olá, <b>${u.name}</b></div>
+          <span class="role-pill">${Auth.isMaestro ? 'Maestro' : (u.voice_type ? cap(u.voice_type) : 'Coralista')}</span>
         </div>
         <div id="content"></div>
       </main>
     </div>`;
+
   app.querySelector('#logout').onclick = () => Auth.logout();
+
+  // menu responsivo
+  const sidebar = app.querySelector('#sidebar');
+  const backdrop = app.querySelector('#backdrop');
+  const closeMenu = () => { sidebar.classList.remove('open'); backdrop.classList.remove('show'); };
+  app.querySelector('#menuToggle').onclick = () => { sidebar.classList.toggle('open'); backdrop.classList.toggle('show'); };
+  backdrop.onclick = closeMenu;
+  sidebar.querySelectorAll('a.nav-item').forEach((a) => a.addEventListener('click', closeMenu));
+
   contentFn(app.querySelector('#content'));
 }
 
@@ -165,15 +205,15 @@ async function EvolucaoView(root) {
   chartRefs.push(new Chart(root.querySelector('#accChart'), {
     type: 'line',
     data: { labels, datasets: [{ label: 'Afinação %', data: sessions.map((s) => s.accuracy_pct),
-      borderColor: '#3ecf8e', backgroundColor: 'rgba(62,207,142,.15)', fill: true, tension: .3 }] },
+      borderColor: '#4f7a52', backgroundColor: 'rgba(79,122,82,.12)', fill: true, tension: .3, pointRadius: 3 }] },
     options: chartOpts({ max: 100 }),
   }));
   chartRefs.push(new Chart(root.querySelector('#timbreChart'), {
     type: 'line',
     data: { labels, datasets: [
-      { label: 'Central', data: sessions.map((s) => s.median_freq), borderColor: '#6c8cff', tension: .3 },
-      { label: 'Grave', data: sessions.map((s) => s.low_freq), borderColor: '#94a3c4', borderDash: [4, 4], tension: .3 },
-      { label: 'Agudo', data: sessions.map((s) => s.high_freq), borderColor: '#f0a93b', borderDash: [4, 4], tension: .3 },
+      { label: 'Central', data: sessions.map((s) => s.median_freq), borderColor: '#3b4f7d', tension: .3, pointRadius: 2 },
+      { label: 'Grave', data: sessions.map((s) => s.low_freq), borderColor: '#9c988a', borderDash: [4, 4], tension: .3, pointRadius: 0 },
+      { label: 'Agudo', data: sessions.map((s) => s.high_freq), borderColor: '#b5654a', borderDash: [4, 4], tension: .3, pointRadius: 0 },
     ] },
     options: chartOpts(),
   }));
@@ -250,10 +290,10 @@ function renderMaterialList(node, materials) {
 
 // ---------------------------------------------------------------- MAESTRO: dashboard
 async function AdminDashView(root) {
-  root.innerHTML = '<h2 class="section-title">Dashboard administrativo</h2><p class="muted">Carregando…</p>';
+  root.innerHTML = '<h2 class="section-title">Painel</h2><p class="muted">Carregando…</p>';
   const { kpis, por_naipe } = await api('/admin/dashboard');
   root.innerHTML = `
-    <h2 class="section-title">Dashboard administrativo</h2>
+    <h2 class="section-title">Painel</h2>
     <div class="grid cols-4">
       <div class="card kpi"><span class="label">Coralistas</span><span class="value">${kpis.total_coralistas}</span></div>
       <div class="card kpi"><span class="label">Ativos (7 dias)</span><span class="value">${kpis.ativos_7d}</span><span class="sub">ensaiando em casa</span></div>
@@ -261,22 +301,15 @@ async function AdminDashView(root) {
       <div class="card kpi"><span class="label">Afinação média</span><span class="value">${kpis.accuracy_media}%</span></div>
     </div>
     <div class="grid cols-2" style="margin-top:18px">
-      <div class="card"><h3>Afinação média por naipe</h3>${por_naipe.length ? '<div class="chart-box"><canvas id="naipeChart"></canvas></div>' : '<p class="muted">Sem dados de ensaio ainda.</p>'}</div>
+      <div class="card"><h3>Afinação média por naipe</h3>
+        ${por_naipe.length ? por_naipe.map((n) => hBar(cap(n.voice_type), n.accuracy + '%', n.accuracy, 'fill-' + n.voice_type)).join('') : '<p class="muted">Sem dados de ensaio ainda.</p>'}
+      </div>
       <div class="card"><h3>Quem está no tom?</h3>
         ${por_naipe.length ? `<table><thead><tr><th>Naipe</th><th>Ensaios</th><th>Afinação</th><th>Desvio</th></tr></thead><tbody>
-          ${por_naipe.map((n) => `<tr><td>${badge(n.voice_type)}</td><td>${n.sessoes}</td><td>${accBadge(n.accuracy)}</td><td>${n.cents}¢</td></tr>`).join('')}
+          ${por_naipe.map((n) => `<tr><td>${badge(n.voice_type)}</td><td>${n.sessoes}</td><td>${miniBar(n.accuracy)}</td><td>${n.cents}¢</td></tr>`).join('')}
         </tbody></table>` : '<p class="muted">Aguardando ensaios dos coralistas.</p>'}
       </div>
     </div>`;
-  if (por_naipe.length) {
-    chartRefs.push(new Chart(root.querySelector('#naipeChart'), {
-      type: 'bar',
-      data: { labels: por_naipe.map((n) => n.voice_type),
-        datasets: [{ label: 'Afinação %', data: por_naipe.map((n) => n.accuracy),
-          backgroundColor: ['#c77dff', '#56a8ff', '#5cffa0', '#ffc56b'] }] },
-      options: chartOpts({ max: 100 }),
-    }));
-  }
 }
 
 // ---------------------------------------------------------------- MAESTRO: acessos
@@ -296,16 +329,19 @@ async function AdminAcessosView(root) {
         ${buckets.length ? '<div class="chart-box"><canvas id="accessChart"></canvas></div>' : '<p class="muted">Sem acessos registrados.</p>'}</div>
       <div class="card" style="margin-top:18px"><h3>Ranking de dedicação (coralistas)</h3>
         <table><thead><tr><th>#</th><th>Coralista</th><th>Naipe</th><th>Acessos</th><th>Último acesso</th></tr></thead><tbody>
-          ${ranking.length ? ranking.map((r, i) => `<tr><td>${i + 1}</td><td>${r.name}</td><td>${badge(r.voice_type)}</td><td><b>${r.acessos}</b></td><td>${fmtDate(r.ultimo_acesso)}</td></tr>`).join('') : '<tr><td colspan="5" class="muted">Nenhum acesso ainda.</td></tr>'}
+          ${ranking.length ? ranking.map((r, i) => `<tr><td class="rank">${String(i + 1).padStart(2, '0')}</td><td>${person(r.name, r.voice_type)}</td><td>${badge(r.voice_type)}</td><td><b>${r.acessos}</b></td><td class="muted">${fmtDate(r.ultimo_acesso)}</td></tr>`).join('') : '<tr><td colspan="5" class="muted">Nenhum acesso ainda.</td></tr>'}
         </tbody></table>
       </div>`;
     root.querySelectorAll('.tabs button').forEach((b) => b.onclick = () => { period = b.dataset.p; load(); });
     if (buckets.length) {
+      const WD = ['Dom', 'Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb'];
+      const labels = buckets.map((b) => period === 'day'
+        ? WD[new Date(b.bucket + 'T00:00:00').getDay()] : b.bucket);
       chartRefs.push(new Chart(root.querySelector('#accessChart'), {
         type: 'bar',
-        data: { labels: buckets.map((b) => b.bucket), datasets: [
-          { label: 'Acessos', data: buckets.map((b) => b.acessos), backgroundColor: '#6c8cff' },
-          { label: 'Coralistas distintos', data: buckets.map((b) => b.usuarios), backgroundColor: '#f0a93b' },
+        data: { labels, datasets: [
+          { label: 'Acessos', data: buckets.map((b) => b.acessos), backgroundColor: '#4f7a52', borderRadius: 6, borderSkipped: false, maxBarThickness: 30 },
+          { label: 'Coralistas distintos', data: buckets.map((b) => b.usuarios), backgroundColor: '#cabfa8', borderRadius: 6, borderSkipped: false, maxBarThickness: 30 },
         ] },
         options: chartOpts(),
       }));
@@ -321,27 +357,21 @@ async function AdminNaipesView(root) {
   root.innerHTML = `
     <h2 class="section-title">Relatório por naipe</h2>
     <div class="grid cols-2">
-      <div class="card"><h3>Afinação média por naipe</h3>${por_naipe.length ? '<div class="chart-box"><canvas id="vChart"></canvas></div>' : '<p class="muted">Sem dados.</p>'}</div>
-      <div class="card"><h3>Desvio médio (cents) — menor é melhor</h3>${por_naipe.length ? '<div class="chart-box"><canvas id="cChart"></canvas></div>' : '<p class="muted">Sem dados.</p>'}</div>
+      <div class="card"><h3>Afinação média por naipe</h3>
+        ${por_naipe.length ? por_naipe.map((n) => hBar(cap(n.voice_type), n.accuracy + '%', n.accuracy, 'fill-' + n.voice_type)).join('') : '<p class="muted">Sem dados.</p>'}
+      </div>
+      <div class="card"><h3>Desvio médio <span class="muted" style="font-size:13px;font-weight:400">(cents — menor é melhor)</span></h3>
+        ${por_naipe.length ? por_naipe.map((n) => hBar(cap(n.voice_type), n.cents + '¢', Math.min(n.cents / 30 * 100, 100), 'fill-' + n.voice_type)).join('') : '<p class="muted">Sem dados.</p>'}
+      </div>
     </div>
     <div class="card" style="margin-top:18px"><h3>Coralistas — quem está no tom e quem precisa melhorar</h3>
-      <table><thead><tr><th>Coralista</th><th>Naipe</th><th>Ensaios</th><th>Afinação</th><th>Desvio</th><th>Situação</th><th>Último ensaio</th></tr></thead><tbody>
+      <table><thead><tr><th>Coralista</th><th>Naipe</th><th>Ensaios</th><th>Afinação</th><th>Desvio</th><th>Situação</th></tr></thead><tbody>
         ${coralistas.map((c) => {
-          const sit = c.sessoes ? (c.accuracy >= 80 ? '<span class="badge good">No tom</span>' : c.accuracy >= 55 ? '<span class="badge warn">Regular</span>' : '<span class="badge bad">Melhorar</span>') : '<span class="muted">Sem ensaio</span>';
-          return `<tr><td>${c.name}</td><td>${badge(c.voice_type)}</td><td>${c.sessoes || 0}</td><td>${accBadge(c.sessoes ? c.accuracy : null)}</td><td>${c.cents != null ? c.cents + '¢' : '—'}</td><td>${sit}</td><td>${c.ultimo_ensaio ? fmtDate(c.ultimo_ensaio) : '—'}</td></tr>`;
+          const sit = c.sessoes ? (c.accuracy >= 80 ? '<span class="badge good">No tom</span>' : c.accuracy >= 55 ? '<span class="badge warn">Atenção</span>' : '<span class="badge bad">Precisa melhorar</span>') : '<span class="muted">Sem ensaio</span>';
+          return `<tr><td>${person(c.name, c.voice_type)}</td><td>${badge(c.voice_type)}</td><td>${c.sessoes || 0}</td><td>${c.sessoes ? miniBar(c.accuracy) : '<span class="muted">—</span>'}</td><td>${c.cents != null ? c.cents + '¢' : '—'}</td><td>${sit}</td></tr>`;
         }).join('')}
       </tbody></table>
     </div>`;
-  if (por_naipe.length) {
-    chartRefs.push(new Chart(root.querySelector('#vChart'), {
-      type: 'bar', data: { labels: por_naipe.map((n) => n.voice_type),
-        datasets: [{ label: 'Afinação %', data: por_naipe.map((n) => n.accuracy), backgroundColor: '#3ecf8e' }] },
-      options: chartOpts({ max: 100 }) }));
-    chartRefs.push(new Chart(root.querySelector('#cChart'), {
-      type: 'bar', data: { labels: por_naipe.map((n) => n.voice_type),
-        datasets: [{ label: 'Desvio ¢', data: por_naipe.map((n) => n.cents), backgroundColor: '#f0a93b' }] },
-      options: chartOpts() }));
-  }
 }
 
 // ---------------------------------------------------------------- MAESTRO: hinos & melodias
@@ -462,7 +492,7 @@ async function AdminCoralistasView(root) {
       </div>
       <div class="card"><h3>${coralistas.length} coralista(s)</h3>
         <table><thead><tr><th>Nome</th><th>E-mail</th><th>Naipe</th></tr></thead><tbody>
-          ${coralistas.map((c) => `<tr><td>${c.name}</td><td class="muted">${c.email}</td><td>${badge(c.voice_type)}</td></tr>`).join('') || '<tr><td colspan="3" class="muted">Nenhum coralista.</td></tr>'}
+          ${coralistas.map((c) => `<tr><td>${person(c.name, c.voice_type)}</td><td class="muted">${c.email}</td><td>${badge(c.voice_type)}</td></tr>`).join('') || '<tr><td colspan="3" class="muted">Nenhum coralista.</td></tr>'}
         </tbody></table>
       </div>
     </div>`;
@@ -484,10 +514,10 @@ async function AdminCoralistasView(root) {
 function chartOpts(scale = {}) {
   return {
     responsive: true, maintainAspectRatio: false,
-    plugins: { legend: { labels: { color: '#94a3c4' } } },
+    plugins: { legend: { labels: { color: '#5b5f51', boxWidth: 12, usePointStyle: true, font: { size: 12 } } } },
     scales: {
-      x: { ticks: { color: '#94a3c4' }, grid: { color: 'rgba(255,255,255,.05)' } },
-      y: { beginAtZero: true, max: scale.max, ticks: { color: '#94a3c4' }, grid: { color: 'rgba(255,255,255,.05)' } },
+      x: { ticks: { color: '#8d8a7c' }, grid: { display: false }, border: { display: false } },
+      y: { beginAtZero: true, max: scale.max, ticks: { color: '#8d8a7c' }, grid: { color: 'rgba(60,50,30,.06)' }, border: { display: false } },
     },
   };
 }

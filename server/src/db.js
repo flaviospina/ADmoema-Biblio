@@ -102,7 +102,55 @@ function seed() {
   insLine.run(h1, 'tenor',     'E4 F4 G4 A4 C5:2 A4 G4 F4 E4:2');
   insLine.run(h1, 'baixo',     'C3 C3 G3 G3 C4:2 G3 E3 G3 C3:2');
 
+  seedDemo();
   console.log('[db] Seed criado. Maestro: maestro@admoema.com.br / senha: admoema123');
+}
+
+// ---- Dados de demonstração (para o painel não nascer vazio) -----------------
+function seedDemo() {
+  const pass = bcrypt.hashSync('coral123', 10);
+  const rand = (a, b) => a + Math.random() * (b - a);
+  // centro de timbre por naipe (Hz) para gráficos coerentes
+  const CENTER = { soprano: 523, contralto: 349, tenor: 262, baixo: 165 };
+
+  // nome, email, naipe, nº ensaios, afinação média, desvio médio, nº acessos
+  const demo = [
+    ['Ana Beatriz Lima', 'ana.lima@admoema.org', 'soprano', 24, 94, 6, 18],
+    ['Mariana Souza', 'mariana.souza@admoema.org', 'soprano', 17, 88, 11, 12],
+    ['Priscila Andrade', 'priscila.a@admoema.org', 'contralto', 21, 91, 8, 15],
+    ['Débora Nogueira', 'debora.n@admoema.org', 'contralto', 9, 79, 19, 7],
+    ['Lucas Ferreira', 'lucas.f@admoema.org', 'tenor', 19, 85, 13, 14],
+    ['Tiago Mendes', 'tiago.m@admoema.org', 'tenor', 6, 72, 24, 5],
+    ['Rafael Carvalho', 'rafael.c@admoema.org', 'baixo', 20, 90, 9, 16],
+    ['Josué Ribeiro', 'josue.r@admoema.org', 'baixo', 11, 83, 15, 9],
+  ];
+
+  const insUser = db.prepare(
+    `INSERT INTO users (name, email, password_hash, role, voice_type) VALUES (?, ?, ?, 'coralista', ?)`
+  );
+  const insSess = db.prepare(
+    `INSERT INTO practice_sessions
+       (user_id, hymn_id, voice_type, duration_sec, accuracy_pct, avg_cents_off, median_freq, low_freq, high_freq, created_at)
+     VALUES (?, 1, ?, ?, ?, ?, ?, ?, ?, datetime('now', ?))`
+  );
+  const insLog = db.prepare(
+    `INSERT INTO access_logs (user_id, action, created_at) VALUES (?, ?, datetime('now', ?, ?))`
+  );
+
+  for (const [name, email, voice, sessoes, acc, cents, acessos] of demo) {
+    const uid = insUser.run(name, email, pass, voice).lastInsertRowid;
+    const center = CENTER[voice];
+    for (let i = 0; i < sessoes; i++) {
+      const a = Math.max(40, Math.min(100, Math.round(acc + rand(-8, 8))));
+      const c = Math.max(2, Math.round(cents + rand(-5, 6)));
+      const dayOff = `-${Math.round(rand(0, 25))} days`;
+      insSess.run(uid, voice, Math.round(rand(35, 90)), a, c,
+        Math.round(center + rand(-12, 12)), Math.round(center * 0.8), Math.round(center * 1.3), dayOff);
+    }
+    for (let i = 0; i < acessos; i++) {
+      insLog.run(uid, i % 4 === 0 ? 'practice' : 'login', `-${i % 7} days`, `-${Math.round(rand(0, 16))} hours`);
+    }
+  }
 }
 seed();
 
