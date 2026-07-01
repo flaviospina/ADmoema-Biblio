@@ -1,0 +1,59 @@
+// Prisma schema. Padrao SQLite para self-host simples; para Postgres,
+// troque provider para "postgresql" e ajuste DATABASE_URL.
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String
+  role         String   @default("USER") // USER | ADMIN
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  songs        Song[]
+}
+
+model Song {
+  id           String   @id @default(cuid())
+  userId       String
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  title        String
+  story        String
+  briefing     String   @default("{}") // JSON com as preferencias
+  lyrics       String
+  stylePrompt  String
+  tags         String   @default("[]") // JSON array
+  notes        String   @default("")
+  instrumental Boolean  @default(false)
+  sunoJobId    String?
+  status       String   @default("queued") // queued | processing | complete | failed
+  isPublic     Boolean  @default(false)
+  shareId      String?  @unique
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  tracks       Track[]
+
+  @@index([userId])
+}
+
+model Track {
+  id        String   @id @default(cuid())
+  songId    String
+  song      Song     @relation(fields: [songId], references: [id], onDelete: Cascade)
+  extId     String // id da faixa no provedor Suno
+  title     String
+  audioUrl  String?
+  imageUrl  String?
+  duration  Int?
+  createdAt DateTime @default(now())
+
+  @@index([songId])
+}

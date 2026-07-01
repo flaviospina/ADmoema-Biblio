@@ -1,9 +1,11 @@
 "use client";
 
+import Link from "next/link";
 import type { MusicJob } from "@/lib/types";
 
 interface Props {
   job: MusicJob | null;
+  songId?: string | null;
   polling: boolean;
   error: string | null;
   onRestart: () => void;
@@ -16,7 +18,7 @@ const STATUS_LABEL: Record<string, string> = {
   failed: "Falhou",
 };
 
-export function MusicPlayer({ job, polling, error, onRestart }: Props) {
+export function MusicPlayer({ job, songId, polling, error, onRestart }: Props) {
   const status = job?.status ?? "queued";
   const done = status === "complete";
   const failed = status === "failed" || Boolean(error);
@@ -73,7 +75,12 @@ export function MusicPlayer({ job, polling, error, onRestart }: Props) {
             </div>
           ))}
 
-          <div className="flex justify-center pt-2">
+          <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+            {songId && (
+              <Link href={`/musica/${songId}`} className="btn-primary">
+                Ver detalhes e compartilhar
+              </Link>
+            )}
             <button className="btn-ghost" onClick={onRestart}>
               Criar outra musica
             </button>

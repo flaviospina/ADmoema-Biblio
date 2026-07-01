@@ -14,22 +14,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="pt-BR">
-      <body>
-        <div className="mx-auto flex min-h-screen max-w-3xl flex-col px-4 py-8 sm:py-12">
-          <header className="mb-8 text-center">
-            <h1 className="bg-gradient-to-r from-brand-300 to-brand-500 bg-clip-text text-3xl font-extrabold tracking-tight text-transparent sm:text-4xl">
-              Historia em Musica
-            </h1>
-            <p className="mt-2 text-sm text-slate-400">
-              Conte a sua historia. A IA escreve a letra, define o estilo e gera a musica.
-            </p>
-          </header>
-          <main className="flex-1">{children}</main>
-          <footer className="mt-12 text-center text-xs text-slate-600">
-            Feito para transformar historias em cancoes.
-          </footer>
-        </div>
-      </body>
+      <body>{children}</body>
     </html>
   );
 }

@@ -5,15 +5,23 @@ import { Stepper, type Step } from "@/components/Stepper";
 import { StoryForm } from "@/components/StoryForm";
 import { LyricsEditor } from "@/components/LyricsEditor";
 import { MusicPlayer } from "@/components/MusicPlayer";
-import type { Briefing, MusicJob, SongDraft } from "@/lib/types";
+import type { Briefing, MusicJob, MusicTrack, SongDraft } from "@/lib/types";
 
 const POLL_INTERVAL = 4000;
 const POLL_TIMEOUT = 5 * 60 * 1000; // 5 min
 
-export default function Home() {
+interface SongResponse {
+  id: string;
+  status: MusicJob["status"];
+  tracks: MusicTrack[];
+  error?: string;
+}
+
+export function Creator() {
   const [step, setStep] = useState<Step>("briefing");
   const [draft, setDraft] = useState<SongDraft | null>(null);
   const [job, setJob] = useState<MusicJob | null>(null);
+  const [songId, setSongId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -43,6 +51,8 @@ export default function Home() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Falha ao gerar a letra.");
       setDraft(data.draft as SongDraft);
+      // Guarda o briefing junto do draft para persistir depois.
+      (data.draft as SongDraft & { _briefing?: Briefing })._briefing = b;
       setStep("lyrics");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
@@ -51,27 +61,25 @@ export default function Home() {
     }
   }
 
-  const pollJob = useCallback(
-    async (jobId: string) => {
+  const pollSong = useCallback(
+    async (id: string) => {
       try {
-        const res = await fetch(`/api/music-status?jobId=${encodeURIComponent(jobId)}`, {
-          cache: "no-store",
-        });
+        const res = await fetch(`/api/songs/${id}`, { cache: "no-store" });
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "Falha ao consultar status.");
-        const nextJob = data.job as MusicJob;
-        setJob(nextJob);
+        const song = data.song as SongResponse;
+        setJob({ jobId: id, status: song.status, tracks: song.tracks, error: song.error });
 
-        if (nextJob.status === "complete" || nextJob.status === "failed") {
+        if (song.status === "complete" || song.status === "failed") {
           stopPolling();
           return;
         }
         if (Date.now() - pollStart.current > POLL_TIMEOUT) {
-          setError("Tempo esgotado aguardando o Suno. Tente novamente.");
+          setError("Tempo esgotado aguardando o Suno. A musica ficou salva no seu historico.");
           stopPolling();
           return;
         }
-        pollTimer.current = setTimeout(() => pollJob(jobId), POLL_INTERVAL);
+        pollTimer.current = setTimeout(() => pollSong(id), POLL_INTERVAL);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Erro ao consultar status.");
         stopPolling();
@@ -86,18 +94,20 @@ export default function Home() {
     setError(null);
     setJob(null);
     setDraft(finalDraft);
+    const briefing = (draft as (SongDraft & { _briefing?: Briefing }) | null)?._briefing;
     try {
       const res = await fetch("/api/generate-music", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ draft: finalDraft, instrumental }),
+        body: JSON.stringify({ draft: finalDraft, instrumental, briefing }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || "Falha ao iniciar a geracao.");
+      setSongId(data.songId as string);
       setStep("music");
       setPolling(true);
       pollStart.current = Date.now();
-      pollJob(data.jobId as string);
+      pollSong(data.songId as string);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Erro inesperado.");
     } finally {
@@ -110,6 +120,7 @@ export default function Home() {
     setStep("briefing");
     setDraft(null);
     setJob(null);
+    setSongId(null);
     setError(null);
   }
 
@@ -135,7 +146,13 @@ export default function Home() {
       )}
 
       {step === "music" && (
-        <MusicPlayer job={job} polling={polling} error={error} onRestart={restart} />
+        <MusicPlayer
+          job={job}
+          songId={songId}
+          polling={polling}
+          error={error}
+          onRestart={restart}
+        />
       )}
     </div>
   );

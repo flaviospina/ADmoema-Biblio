@@ -1,0 +1,17 @@
+import { PrismaClient } from "@prisma/client";
+
+/**
+ * Cliente Prisma como singleton, evitando multiplas conexoes em dev
+ * (hot reload) e em ambientes serverless.
+ */
+const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
+
+export const prisma =
+  globalForPrisma.prisma ??
+  new PrismaClient({
+    log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
+  });
+
+if (process.env.NODE_ENV !== "production") {
+  globalForPrisma.prisma = prisma;
+}
