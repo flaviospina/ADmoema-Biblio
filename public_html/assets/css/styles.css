@@ -202,6 +202,10 @@ td.rank { color: var(--muted); font-variant-numeric: tabular-nums; font-weight: 
 .note-chip.miss { background: #f6e2de; color: var(--bad); border-color: #e7c3bc; }
 .note-chip.silent { opacity: .4; }
 
+/* gráfico ao vivo da afinação (ensaio) */
+.trace-wrap { margin: 10px 0 2px; }
+.trace-wrap canvas { width: 100%; height: 110px; border: 1px solid var(--line); border-radius: 10px; display: block; }
+
 .spinner { display: inline-block; width: 16px; height: 16px; border: 2px solid rgba(255,255,255,.5); border-top-color: #fff; border-radius: 50%; animation: spin .7s linear infinite; }
 @keyframes spin { to { transform: rotate(360deg); } }
 

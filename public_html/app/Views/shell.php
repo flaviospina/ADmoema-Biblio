@@ -6,16 +6,16 @@
   <title>Coral ADMoema — Cantata</title>
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link href="https://fonts.googleapis.com/css2?family=Fraunces:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet" />
-  <link rel="stylesheet" href="/css/styles.css" />
+  <link rel="stylesheet" href="/assets/css/styles.css" />
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </head>
 <body>
   <div id="app"></div>
 
-  <script src="/js/api.js"></script>
-  <script src="/js/pitch.js"></script>
-  <script src="/js/melody.js"></script>
-  <script src="/js/trainer.js"></script>
-  <script src="/js/app.js"></script>
+  <script src="/assets/js/api.js"></script>
+  <script src="/assets/js/pitch.js"></script>
+  <script src="/assets/js/melody.js"></script>
+  <script src="/assets/js/trainer.js"></script>
+  <script src="/assets/js/app.js"></script>
 </body>
 </html>

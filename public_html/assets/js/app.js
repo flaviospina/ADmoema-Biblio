@@ -58,8 +58,7 @@ function LoginView() {
         <button data-m="register">Criar conta</button>
       </div>
       <div id="formArea"></div>
-      <div class="hint">Maestro: <b>maestro@admoema.com.br</b> · <b>admoema123</b><br>
-        Coralistas demo (ex.: <b>ana.lima@admoema.org</b>) · senha <b>coral123</b></div>
+      <div class="hint">Acesso do maestro: <b>maestro@admoema.com.br</b> · senha <b>admoema123</b> (troque após o 1º acesso)</div>
     </div></div>`;
 
   const formArea = app.querySelector('#formArea');
@@ -94,7 +93,7 @@ function LoginView() {
         email, password,
         voice_type: formArea.querySelector('#voice').value || null,
       });
-      location.hash = Auth.isMaestro ? '#/admin' : '#/inicio';
+      navigate(Auth.isMaestro ? '/painel' : '/inicio');
     } catch (e) { err.textContent = e.message; btn.disabled = false; }
   }
 
@@ -110,17 +109,17 @@ function LoginView() {
 function Shell(active, contentFn) {
   const u = Auth.current;
   const nav = Auth.isMaestro ? [
-    ['#/admin', 'Painel'],
-    ['#/admin/acessos', 'Quem ensaia em casa'],
-    ['#/admin/naipes', 'Relatório por naipe'],
-    ['#/admin/hinos', 'Hinos & melodias'],
-    ['#/admin/coralistas', 'Coralistas'],
-    ['#/admin/materiais', 'Materiais'],
+    ['/painel', 'Painel'],
+    ['/painel/acessos', 'Quem ensaia em casa'],
+    ['/painel/naipes', 'Relatório por naipe'],
+    ['/painel/hinos', 'Hinos & melodias'],
+    ['/painel/coralistas', 'Coralistas'],
+    ['/painel/materiais', 'Materiais'],
   ] : [
-    ['#/inicio', 'Início'],
-    ['#/ensaiar', 'Ensaiar minha voz'],
-    ['#/evolucao', 'Minha evolução'],
-    ['#/materiais', 'Materiais'],
+    ['/inicio', 'Início'],
+    ['/ensaiar', 'Ensaiar minha voz'],
+    ['/evolucao', 'Minha evolução'],
+    ['/materiais', 'Materiais'],
   ];
 
   app.innerHTML = `
@@ -174,7 +173,7 @@ async function InicioView(root) {
     <div class="card" style="margin-top:18px">
       <h3>Pronto para ensaiar?</h3>
       <p class="muted">Treine sua voz e acompanhe sua evolução de afinação e timbre.</p>
-      <a class="btn lg" href="#/ensaiar">🎤 Iniciar ensaio</a>
+      <a class="btn lg" href="/ensaiar">🎤 Iniciar ensaio</a>
     </div>`;
 }
 
@@ -524,30 +523,57 @@ function chartOpts(scale = {}) {
 
 // ---------------------------------------------------------------- ROUTER
 const routes = {
-  '#/login': () => LoginView(),
-  '#/inicio': () => Shell('#/inicio', InicioView),
-  '#/ensaiar': () => Shell('#/ensaiar', TrainerView),
-  '#/evolucao': () => Shell('#/evolucao', EvolucaoView),
-  '#/materiais': () => Shell('#/materiais', (r) => MateriaisView(r, false)),
-  '#/admin': () => Shell('#/admin', AdminDashView),
-  '#/admin/acessos': () => Shell('#/admin/acessos', AdminAcessosView),
-  '#/admin/naipes': () => Shell('#/admin/naipes', AdminNaipesView),
-  '#/admin/hinos': () => Shell('#/admin/hinos', AdminHinosView),
-  '#/admin/coralistas': () => Shell('#/admin/coralistas', AdminCoralistasView),
-  '#/admin/materiais': () => Shell('#/admin/materiais', (r) => MateriaisView(r, true)),
+  '/entrar': () => LoginView(),
+  '/inicio': () => Shell('/inicio', InicioView),
+  '/ensaiar': () => Shell('/ensaiar', TrainerView),
+  '/evolucao': () => Shell('/evolucao', EvolucaoView),
+  '/materiais': () => Shell('/materiais', (r) => MateriaisView(r, false)),
+  '/painel': () => Shell('/painel', AdminDashView),
+  '/painel/acessos': () => Shell('/painel/acessos', AdminAcessosView),
+  '/painel/naipes': () => Shell('/painel/naipes', AdminNaipesView),
+  '/painel/hinos': () => Shell('/painel/hinos', AdminHinosView),
+  '/painel/coralistas': () => Shell('/painel/coralistas', AdminCoralistasView),
+  '/painel/materiais': () => Shell('/painel/materiais', (r) => MateriaisView(r, true)),
 };
+
+// Navegação com URLs amigáveis (History API)
+function navigate(to) {
+  if (location.pathname !== to) history.pushState({}, '', to);
+  render();
+}
 
 function render() {
   clearCharts();
-  const hash = location.hash || '';
-  if (!Auth.current) { LoginView(); if (hash !== '#/login') location.hash = '#/login'; return; }
+  let path = location.pathname.replace(/\/+$/, '') || '/';
+  if (!Auth.current) {
+    if (path !== '/entrar') history.replaceState({}, '', '/entrar');
+    LoginView();
+    return;
+  }
   // proteção de papel
-  if (hash.startsWith('#/admin') && !Auth.isMaestro) { location.hash = '#/inicio'; return; }
-  const route = routes[hash];
+  if (path.startsWith('/painel') && !Auth.isMaestro) { navigate('/inicio'); return; }
+  const home = Auth.isMaestro ? '/painel' : '/inicio';
+  if (path === '/' || path === '/entrar') { history.replaceState({}, '', home); path = home; }
+  const route = routes[path];
   if (route) route();
-  else location.hash = Auth.isMaestro ? '#/admin' : '#/inicio';
+  else navigate(home);
 }
 
-window.addEventListener('hashchange', render);
-window.addEventListener('DOMContentLoaded', render);
-render();
+// Intercepta cliques em links internos para navegar sem recarregar a página
+document.addEventListener('click', (e) => {
+  const a = e.target.closest('a');
+  if (!a) return;
+  const href = a.getAttribute('href') || '';
+  if (href.startsWith('/') && !href.startsWith('/api') && !href.startsWith('/assets') && a.target !== '_blank') {
+    e.preventDefault();
+    navigate(href);
+  }
+});
+
+window.addEventListener('popstate', render);
+
+// Inicialização: confirma a sessão no servidor antes da primeira renderização
+(async () => {
+  await Auth.hydrate();
+  render();
+})();

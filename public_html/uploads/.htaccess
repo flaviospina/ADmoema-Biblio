@@ -1,0 +1,2 @@
+# Arquivos são entregues somente via /api/materials/{id}/file (com autenticação)
+Require all denied

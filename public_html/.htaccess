@@ -1,0 +1,25 @@
+# Coral ADMoema — URLs amigáveis (HostGator / Apache)
+Options -Indexes
+
+<IfModule mod_rewrite.c>
+  RewriteEngine On
+  RewriteBase /
+
+  # Bloqueia acesso direto a pastas internas e arquivos sensíveis
+  RewriteRule ^app(/|$) - [F,L]
+  RewriteRule ^uploads(/|$) - [F,L]
+  RewriteRule ^config(\.example)?\.php$ - [F,L]
+
+  # Arquivos e pastas reais (assets) são servidos diretamente
+  RewriteCond %{REQUEST_FILENAME} -f [OR]
+  RewriteCond %{REQUEST_FILENAME} -d
+  RewriteRule ^ - [L]
+
+  # Todo o resto passa pelo front controller
+  RewriteRule ^ index.php [L]
+</IfModule>
+
+# Segurança básica
+<FilesMatch "^(config\.php|config\.example\.php)$">
+  Require all denied
+</FilesMatch>

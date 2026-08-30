@@ -1,7 +1,12 @@
+# Configuração real (criada a partir de config.example.php — nunca versionar senhas)
+public_html/config.php
+
+# Uploads dos materiais
+public_html/uploads/*
+!public_html/uploads/.htaccess
+
+# Desenvolvimento local
+dev/dev.sqlite
 node_modules/
-server/data/*.db
-server/data/*.db-journal
-server/data/uploads/
-.env
 *.log
 .DS_Store

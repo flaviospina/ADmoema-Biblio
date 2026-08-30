@@ -1,80 +1,79 @@
-# 🚀 Como publicar a demonstração online (passo a passo)
+# 🚀 Publicar na HostGator (passo a passo)
 
-Este guia coloca o sistema no ar com um **link público** (HTTPS), sem você
-instalar nada no computador. Vamos usar o **Render** — tem plano **gratuito** e
-já existe um arquivo de configuração pronto (`render.yaml`) neste projeto.
+O sistema é **PHP MVC + MySQL** com **URLs amigáveis** — feito sob medida para a
+hospedagem compartilhada da HostGator (cPanel). Você só precisa do navegador.
 
-> ⏱️ Leva uns 10 minutos na primeira vez. Você só precisa do navegador.
-
----
-
-## Passo 1 — Criar conta no Render
-1. Acesse **https://render.com** e clique em **Get Started / Sign Up**.
-2. Escolha **“Sign in with GitHub”** e entre com a sua conta do GitHub
-   (a mesma dona do repositório `flaviospina/admoema-biblio`).
-3. Autorize o Render a acessar seus repositórios.
-
-## Passo 2 — Criar o serviço a partir do Blueprint
-1. No painel do Render, clique em **New +** (canto superior direito) →
-   **Blueprint**.
-2. Selecione o repositório **`admoema-biblio`**.
-   - Se ele não aparecer, clique em **“Configure account / repositories”** e
-     dê acesso a esse repositório.
-3. Em **Branch**, escolha **`claude/choir-voice-analysis-app-15rosf`**
-   (⚠️ importante: NÃO use a `main`, o código está nesta branch).
-4. O Render vai ler o `render.yaml` automaticamente e mostrar o serviço
-   **coral-admoema**. Clique em **Apply / Create**.
-
-## Passo 3 — Aguardar a publicação
-1. O Render vai instalar e iniciar o sistema (acompanhe pela aba **Logs**).
-   Quando aparecer `🎵 Coral ADMoema — servidor em …`, está no ar.
-2. No topo da página do serviço vai aparecer o endereço público, algo como:
-   **`https://coral-admoema.onrender.com`**
-
-## Passo 4 — Testar
-1. Abra o link no navegador (de preferência **Chrome**).
-2. Entre como **maestro** para configurar:
-   - E-mail: `maestro@admoema.com.br`
-   - Senha: `admoema123`
-   - Veja o **Dashboard**, abra **Hinos & melodias** e confira as linhas de voz.
-3. Para testar o ensaio de voz: clique em **Criar conta**, escolha um **naipe**
-   (ex.: contralto), entre, vá em **Ensaiar minha voz**, escolha um hino e
-   **permita o uso do microfone** quando o navegador pedir.
-
-> 🔐 **Troque a senha do maestro** depois do primeiro acesso — a senha padrão é
-> só para o teste inicial.
+> ⏱️ Uns 15 minutos na primeira vez.
 
 ---
 
-## Observações importantes do plano gratuito
-- **Hiberna por inatividade:** após ~15 min sem uso, o serviço “dorme”. O
-  primeiro acesso seguinte pode levar ~30s para acordar. É normal no plano free.
-- **Os dados podem ser reiniciados** quando o serviço reinicia (o banco fica em
-  memória temporária no plano gratuito). A conta do maestro e os hinos de exemplo
-  são recriados automaticamente, então a demonstração nunca fica vazia.
-- **Para uso real (dados permanentes):** basta adicionar um **Disk** ao serviço
-  (recurso pago do Render) apontando para `server/data` — eu te oriento quando
-  decidirmos colocar em produção (Etapa 5).
+## Passo 1 — Criar o banco MySQL no cPanel
+1. Entre no **cPanel** da HostGator.
+2. Abra **Bancos de Dados MySQL®** (MySQL Databases).
+3. Em **Criar Novo Banco de Dados**, digite `cantata` e clique **Criar**.
+   O nome final fica com o prefixo da conta, ex.: `seuusuario_cantata`.
+4. Em **Usuários MySQL → Adicionar Novo Usuário**, crie o usuário `cantata`
+   com uma **senha forte** (anote!). Fica ex.: `seuusuario_cantata`.
+5. Em **Adicionar Usuário ao Banco de Dados**, selecione o usuário e o banco,
+   clique **Adicionar** e marque **TODOS OS PRIVILÉGIOS** → **Fazer alterações**.
 
-## Base limpa × dados de demonstração
-O sistema inicia com a **base limpa** (apenas a conta do maestro e os hinos de
-exemplo com as linhas de voz) — pronto para o seu teste, sem coralistas/ensaios.
+## Passo 2 — Importar as tabelas
+1. No cPanel, abra o **phpMyAdmin**.
+2. Clique no banco `seuusuario_cantata` na coluna esquerda.
+3. Aba **Importar** → **Escolher arquivo** → selecione **`database/schema.sql`**
+   (deste projeto) → **Executar**.
+4. Deve criar 6 tabelas (users, access_logs, hymns, voice_lines, materials,
+   practice_sessions) já com o maestro e 2 hinos de exemplo.
 
-- **Quer os dados de demonstração** (8 coralistas, ensaios e acessos, como nas
-  telas de exemplo)? No Render: serviço → **Environment** → adicione a variável
-  **`SEED_DEMO`** com valor **`true`** e faça **Manual Deploy**. (Senha dos
-  coralistas demo: `coral123`.)
-- **Zerar tudo e recomeçar limpo:** no plano gratuito o banco é temporário, então
-  basta **reiniciar/republicar** o serviço (Render → **Manual Deploy → Deploy**).
-  Localmente, rode `npm run reset` dentro de `server/` e depois `npm start`.
+## Passo 3 — Enviar os arquivos
+1. No cPanel, abra o **Gerenciador de Arquivos** (File Manager) → pasta
+   **`public_html`** (ou a pasta do subdomínio, ex.: `cantata.admoema.com.br`).
+2. Envie **todo o CONTEÚDO da pasta `public_html/` do projeto** (index.php,
+   .htaccess, config.example.php e as pastas app/, assets/, uploads/).
+   💡 Dica: compacte a pasta em .zip, envie e use **Extract** no cPanel.
+   ⚠️ Ative "Mostrar arquivos ocultos" (Settings) para conferir o **.htaccess**.
+3. Confirme que a pasta **uploads/** existe e tem permissão **755**.
 
-## Alternativa: rodar no seu próprio computador
-Se preferir testar localmente, instale o **Node.js 22+** (https://nodejs.org),
-baixe o código (botão verde **Code → Download ZIP** na branch) e, no terminal
-dentro da pasta:
+## Passo 4 — Configurar a conexão com o banco
+1. No Gerenciador de Arquivos, selecione **config.example.php** → **Copy** →
+   nomeie a cópia como **`config.php`**.
+2. Edite o **config.php** e preencha:
+   - `name` → `seuusuario_cantata`
+   - `user` → `seuusuario_cantata`
+   - `pass` → a senha criada no Passo 1
+   - `host` → `localhost` (padrão da HostGator)
+3. Salve.
+
+## Passo 5 — Testar
+1. Acesse seu domínio (ex.: `https://cantata.admoema.com.br` ou
+   `https://admoema.com.br/`). Deve abrir a tela **Entrar**.
+2. Login do maestro: **maestro@admoema.com.br** · senha **admoema123**
+   → 🔐 **troque a senha após o primeiro acesso** (ou edite o hash no banco).
+3. Teste as URLs amigáveis: `/painel`, `/ensaiar`, `/painel/hinos` …
+4. Para o **microfone** funcionar, o site precisa estar em **HTTPS**
+   (na HostGator: cPanel → SSL/TLS Status → ative o certificado gratuito
+   AutoSSL para o domínio, se ainda não estiver ativo).
+
+## Problemas comuns
+| Sintoma | Causa provável | Solução |
+|---|---|---|
+| Página inicial abre, mas `/painel` dá **404** | `.htaccess` não foi enviado | Reenvie o `.htaccess` (arquivo oculto) para a raiz |
+| **Erro 500** | `config.php` com dados errados | Confira nome/usuário/senha do banco (com o prefixo da conta) |
+| Login não "segura" (volta para Entrar) | Cookies bloqueados por URL mista | Acesse sempre com **https://** |
+| Microfone não pede permissão | Sem HTTPS | Ative o AutoSSL no cPanel |
+| Upload de áudio falha | Limite de upload do PHP | cPanel → Select PHP Version → Options → `upload_max_filesize` = 32M |
+
+## Instalando em subpasta (opcional)
+Se for publicar em `admoema.com.br/cantata/` (subpasta em vez de domínio/subdomínio),
+me avise — é preciso ajustar o `RewriteBase` do `.htaccess` e os caminhos `/assets`
+para a subpasta. **Recomendo usar um subdomínio** (`cantata.admoema.com.br`), que
+funciona sem nenhum ajuste.
+
+---
+
+## Desenvolvimento local (opcional, para programadores)
+Sem MySQL local? Use SQLite:
 ```bash
-cd server
-npm install
-npm start
+php dev/make_dev_db.php
+php -S localhost:8080 -t public_html public_html/index.php
 ```
-Depois abra **http://localhost:3000**.
