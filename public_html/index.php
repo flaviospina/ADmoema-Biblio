@@ -65,6 +65,7 @@ $r = new Router();
 $r->add('POST', '/api/auth/register', [AuthController::class, 'register']);
 $r->add('POST', '/api/auth/login',    [AuthController::class, 'login']);
 $r->add('POST', '/api/auth/logout',   [AuthController::class, 'logout']);
+$r->add('POST', '/api/auth/change-password', [AuthController::class, 'changePassword']);
 $r->add('GET',  '/api/me',            [AuthController::class, 'me']);
 
 $r->add('GET',  '/api/hymns',                    [HymnController::class, 'index']);

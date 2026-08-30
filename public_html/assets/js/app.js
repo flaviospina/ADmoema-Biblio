@@ -115,11 +115,13 @@ function Shell(active, contentFn) {
     ['/painel/hinos', 'Hinos & melodias'],
     ['/painel/coralistas', 'Coralistas'],
     ['/painel/materiais', 'Materiais'],
+    ['/senha', 'Alterar senha'],
   ] : [
     ['/inicio', 'Início'],
     ['/ensaiar', 'Ensaiar minha voz'],
     ['/evolucao', 'Minha evolução'],
     ['/materiais', 'Materiais'],
+    ['/senha', 'Alterar senha'],
   ];
 
   app.innerHTML = `
@@ -509,6 +511,47 @@ async function AdminCoralistasView(root) {
   };
 }
 
+// ---------------------------------------------------------------- ALTERAR SENHA
+function SenhaView(root) {
+  root.innerHTML = `
+    <h2 class="section-title">Alterar senha</h2>
+    <div class="grid cols-2">
+      <div class="card">
+        <div class="field"><label>Senha atual</label><input id="p_cur" type="password" autocomplete="current-password" /></div>
+        <div class="field"><label>Nova senha <span class="muted">(mínimo 6 caracteres)</span></label><input id="p_new" type="password" autocomplete="new-password" /></div>
+        <div class="field"><label>Confirmar nova senha</label><input id="p_conf" type="password" autocomplete="new-password" /></div>
+        <div class="error" id="p_err"></div>
+        <div id="p_ok" style="margin-bottom:12px"></div>
+        <button class="btn" id="p_save">Salvar nova senha</button>
+      </div>
+      <div class="card">
+        <h3>Dicas de segurança</h3>
+        <p class="muted" style="line-height:1.7;font-size:13.5px">
+          • Use pelo menos 8 caracteres, misturando letras e números.<br>
+          • Evite datas de nascimento e nomes.<br>
+          • Não use a mesma senha de outros sites.<br>
+          • A senha é armazenada <b>criptografada</b> — nem o administrador consegue vê-la.
+        </p>
+      </div>
+    </div>`;
+
+  const el = (s) => root.querySelector(s);
+  el('#p_save').onclick = async () => {
+    const err = el('#p_err'), ok = el('#p_ok');
+    err.textContent = ''; ok.innerHTML = '';
+    const cur = el('#p_cur').value, nova = el('#p_new').value, conf = el('#p_conf').value;
+    if (!cur || !nova) { err.textContent = 'Preencha todos os campos.'; return; }
+    if (nova !== conf) { err.textContent = 'A confirmação não confere com a nova senha.'; return; }
+    const btn = el('#p_save'); btn.disabled = true;
+    try {
+      await api('/auth/change-password', { method: 'POST', body: { current_password: cur, new_password: nova } });
+      ok.innerHTML = '<span class="badge good">✓ Senha alterada com sucesso!</span>';
+      el('#p_cur').value = el('#p_new').value = el('#p_conf').value = '';
+    } catch (e) { err.textContent = e.message; }
+    btn.disabled = false;
+  };
+}
+
 // ---------------------------------------------------------------- chart helper
 function chartOpts(scale = {}) {
   return {
@@ -528,6 +571,7 @@ const routes = {
   '/ensaiar': () => Shell('/ensaiar', TrainerView),
   '/evolucao': () => Shell('/evolucao', EvolucaoView),
   '/materiais': () => Shell('/materiais', (r) => MateriaisView(r, false)),
+  '/senha': () => Shell('/senha', SenhaView),
   '/painel': () => Shell('/painel', AdminDashView),
   '/painel/acessos': () => Shell('/painel/acessos', AdminAcessosView),
   '/painel/naipes': () => Shell('/painel/naipes', AdminNaipesView),
@@ -583,6 +627,7 @@ window.addEventListener('popstate', render);
 
 // Inicialização: confirma a sessão no servidor antes da primeira renderização
 (async () => {
+  if (window.Chart) Chart.defaults.font.family = "'Comfortaa', system-ui, sans-serif";
   await Auth.hydrate();
   render();
 })();

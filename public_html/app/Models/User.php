@@ -30,6 +30,12 @@ class User
         return (int) Database::pdo()->lastInsertId();
     }
 
+    public static function updatePassword(int $id, string $hash): void
+    {
+        $st = Database::pdo()->prepare('UPDATE users SET password_hash = ? WHERE id = ?');
+        $st->execute([$hash, $id]);
+    }
+
     public static function coralistas(): array
     {
         return Database::pdo()

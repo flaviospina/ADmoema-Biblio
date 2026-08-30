@@ -63,4 +63,29 @@ class AuthController extends Controller
         $u = Auth::requireAuth();
         $this->json(['user' => $this->publicUser($u)]);
     }
+
+    /** Troca de senha do usuário logado (maestro ou coralista). */
+    public function changePassword(array $p): void
+    {
+        $u = Auth::requireAuth();
+        $in = $this->input();
+        $current = (string) ($in['current_password'] ?? '');
+        $new = (string) ($in['new_password'] ?? '');
+
+        if ($current === '' || $new === '') {
+            $this->json(['error' => 'Informe a senha atual e a nova senha.'], 400); return;
+        }
+        if (!password_verify($current, $u['password_hash'])) {
+            $this->json(['error' => 'Senha atual incorreta.'], 401); return;
+        }
+        if (mb_strlen($new) < 6) {
+            $this->json(['error' => 'A nova senha deve ter pelo menos 6 caracteres.'], 400); return;
+        }
+        if ($new === $current) {
+            $this->json(['error' => 'A nova senha deve ser diferente da atual.'], 400); return;
+        }
+
+        User::updatePassword((int) $u['id'], password_hash($new, PASSWORD_BCRYPT));
+        $this->json(['ok' => true]);
+    }
 }
