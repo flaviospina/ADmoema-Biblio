@@ -1,0 +1,60 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 240 240" width="240" height="240">
+  <!-- Emblema do Coral ADMoema — pomba sobre a Bíblia aberta
+       (arte original inspirada no símbolo da Assembleia de Deus).
+       Para usar a logo oficial, substitua este arquivo pela versão oficial. -->
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#4f7a52"/>
+      <stop offset="1" stop-color="#3c5f40"/>
+    </linearGradient>
+  </defs>
+
+  <!-- selo -->
+  <circle cx="120" cy="120" r="116" fill="url(#bg)"/>
+  <circle cx="120" cy="120" r="116" fill="none" stroke="#ffffff" stroke-opacity=".25" stroke-width="3"/>
+  <circle cx="120" cy="120" r="104" fill="none" stroke="#ffffff" stroke-opacity=".35" stroke-width="1.5"/>
+
+  <!-- raios -->
+  <g stroke="#ffffff" stroke-opacity=".5" stroke-width="3" stroke-linecap="round">
+    <line x1="120" y1="30" x2="120" y2="14"/>
+    <line x1="154" y1="38" x2="162" y2="22"/>
+    <line x1="86"  y1="38" x2="78"  y2="22"/>
+    <line x1="182" y1="58" x2="194" y2="46"/>
+    <line x1="58"  y1="58" x2="46"  y2="46"/>
+  </g>
+
+  <!-- pomba (voando para a esquerda, leve mergulho) -->
+  <g fill="#ffffff" transform="rotate(10 120 118)">
+    <!-- asa de trás -->
+    <path d="M130 102 C132 76 148 58 176 54 C162 68 158 86 162 102 C151 99 139 99 130 102 Z" fill-opacity=".85"/>
+    <!-- asa da frente -->
+    <path d="M98 106 C92 76 106 52 138 44 C124 62 122 84 132 102 C120 102 107 103 98 106 Z"/>
+    <!-- corpo: cabeça à esquerda, cauda à direita -->
+    <path d="M55 124
+             C70 108 100 100 128 104
+             C150 107 168 116 176 130
+             C168 142 154 148 138 146
+             C120 152 96 150 80 140
+             C88 148 100 153 114 154
+             C98 162 74 158 62 146
+             C56 139 54 131 55 124 Z"/>
+    <!-- cauda -->
+    <path d="M170 128 C184 120 198 119 208 126 C198 130 191 136 187 145 C182 137 177 131 170 128 Z"/>
+    <!-- cabeça e bico -->
+    <circle cx="53" cy="122" r="10"/>
+    <path d="M43 118 L28 123 L44 129 Z"/>
+  </g>
+
+  <!-- Bíblia aberta -->
+  <g>
+    <path d="M52 178 C74 166 100 164 118 172 L118 200 C100 192 74 194 52 204 Z" fill="#ffffff"/>
+    <path d="M188 178 C166 166 140 164 122 172 L122 200 C140 192 166 194 188 204 Z" fill="#ffffff"/>
+    <rect x="118" y="170" width="4" height="30" rx="2" fill="#ffffff"/>
+    <g fill="none" stroke="#4f7a52" stroke-opacity=".5" stroke-width="2" stroke-linecap="round">
+      <path d="M62 182 C76 175 94 173 110 178"/>
+      <path d="M62 190 C76 183 94 181 110 186"/>
+      <path d="M178 182 C164 175 146 173 130 178"/>
+      <path d="M178 190 C164 183 146 181 130 186"/>
+    </g>
+  </g>
+</svg>
