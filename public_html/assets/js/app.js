@@ -281,7 +281,7 @@ function renderMaterialList(node, materials) {
       <div class="row" style="justify-content:space-between">
         <div><b>${icons[m.type] || '📄'} ${m.title}</b> ${m.voice_type ? badge(m.voice_type) : ''}
           ${m.hymn_title ? `<span class="muted"> · ${m.hymn_title}</span>` : ''}</div>
-        ${m.file_name ? `<a class="btn ghost" href="/api/materials/${m.id}/file" target="_blank">Abrir</a>` : ''}
+        ${m.file_name ? `<a class="btn ghost" href="${APP_BASE}/api/materials/${m.id}/file" target="_blank">Abrir</a>` : ''}
       </div>
       ${m.content ? `<pre class="muted" style="white-space:pre-wrap;font-family:inherit;margin:8px 0 0">${m.content}</pre>` : ''}
     </div>`).join('');
@@ -536,37 +536,46 @@ const routes = {
   '/painel/materiais': () => Shell('/painel/materiais', (r) => MateriaisView(r, true)),
 };
 
-// Navegação com URLs amigáveis (History API)
+// Navegação com URLs amigáveis (History API), ciente da subpasta (APP_BASE)
+function appPath() {
+  let p = location.pathname;
+  if (APP_BASE && p.startsWith(APP_BASE)) p = p.slice(APP_BASE.length);
+  if (p.endsWith('/index.php')) p = '/';
+  return p.replace(/\/+$/, '') || '/';
+}
+
 function navigate(to) {
-  if (location.pathname !== to) history.pushState({}, '', to);
+  const full = APP_BASE + to;
+  if (location.pathname !== full) history.pushState({}, '', full);
   render();
 }
 
 function render() {
   clearCharts();
-  let path = location.pathname.replace(/\/+$/, '') || '/';
+  let path = appPath();
   if (!Auth.current) {
-    if (path !== '/entrar') history.replaceState({}, '', '/entrar');
+    if (path !== '/entrar') history.replaceState({}, '', APP_BASE + '/entrar');
     LoginView();
     return;
   }
   // proteção de papel
   if (path.startsWith('/painel') && !Auth.isMaestro) { navigate('/inicio'); return; }
   const home = Auth.isMaestro ? '/painel' : '/inicio';
-  if (path === '/' || path === '/entrar') { history.replaceState({}, '', home); path = home; }
+  if (path === '/' || path === '/entrar') { history.replaceState({}, '', APP_BASE + home); path = home; }
   const route = routes[path];
   if (route) route();
   else navigate(home);
 }
 
-// Intercepta cliques em links internos para navegar sem recarregar a página
+// Intercepta cliques em links internos para navegar sem recarregar a página.
+// Os href do app são "lógicos" (ex.: /ensaiar) — o APP_BASE entra no navigate().
 document.addEventListener('click', (e) => {
   const a = e.target.closest('a');
   if (!a) return;
   const href = a.getAttribute('href') || '';
-  if (href.startsWith('/') && !href.startsWith('/api') && !href.startsWith('/assets') && a.target !== '_blank') {
+  if (href.startsWith('/') && !href.includes('/api/') && !href.includes('/assets/') && a.target !== '_blank') {
     e.preventDefault();
-    navigate(href);
+    navigate(href.startsWith(APP_BASE + '/') && APP_BASE ? href.slice(APP_BASE.length) : href);
   }
 });
 

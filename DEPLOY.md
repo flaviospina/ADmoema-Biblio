@@ -54,20 +54,31 @@ hospedagem compartilhada da HostGator (cPanel). Você só precisa do navegador.
    (na HostGator: cPanel → SSL/TLS Status → ative o certificado gratuito
    AutoSSL para o domínio, se ainda não estiver ativo).
 
+## Passo extra — versão do PHP (importante!)
+O sistema exige **PHP 8.0+**. Na HostGator:
+**cPanel → MultiPHP Manager** → marque o domínio (ou a pasta `coral`) →
+selecione **PHP 8.1** ou **8.2** → **Apply**.
+(Se o servidor estiver no PHP 7, o sistema mostra um aviso explicando isso em
+vez de abrir — basta trocar a versão e recarregar.)
+
+## Instalação em subpasta (ex.: admoema.com.br/coral) ✔ automática
+O sistema **detecta sozinho** a pasta onde foi instalado — funciona igualmente em:
+- raiz do domínio (`admoema.com.br`),
+- subdomínio (`coral.admoema.com.br`),
+- **subpasta** (`admoema.com.br/coral`) — basta colocar o conteúdo de
+  `public_html/` do projeto dentro da pasta `coral` da hospedagem.
+Nenhum ajuste de `.htaccess` ou de caminhos é necessário.
+
 ## Problemas comuns
 | Sintoma | Causa provável | Solução |
 |---|---|---|
-| Página inicial abre, mas `/painel` dá **404** | `.htaccess` não foi enviado | Reenvie o `.htaccess` (arquivo oculto) para a raiz |
+| **Página em branco** | PHP 7 no servidor | MultiPHP Manager → PHP 8.1+ (veja acima) |
+| Página em branco só na subpasta | Arquivos de versão antiga do sistema | Reenvie os arquivos atualizados (esta versão detecta a subpasta sozinha) |
+| Página inicial abre, mas `/coral/painel` dá **404** | `.htaccess` não foi enviado | Reenvie o `.htaccess` (arquivo oculto) para a pasta `coral` |
 | **Erro 500** | `config.php` com dados errados | Confira nome/usuário/senha do banco (com o prefixo da conta) |
 | Login não "segura" (volta para Entrar) | Cookies bloqueados por URL mista | Acesse sempre com **https://** |
 | Microfone não pede permissão | Sem HTTPS | Ative o AutoSSL no cPanel |
 | Upload de áudio falha | Limite de upload do PHP | cPanel → Select PHP Version → Options → `upload_max_filesize` = 32M |
-
-## Instalando em subpasta (opcional)
-Se for publicar em `admoema.com.br/cantata/` (subpasta em vez de domínio/subdomínio),
-me avise — é preciso ajustar o `RewriteBase` do `.htaccess` e os caminhos `/assets`
-para a subpasta. **Recomendo usar um subdomínio** (`cantata.admoema.com.br`), que
-funciona sem nenhum ajuste.
 
 ---
 

@@ -4,10 +4,31 @@ declare(strict_types=1);
 /**
  * Coral ADMoema — front controller.
  * Todas as requisições passam por aqui (ver .htaccess).
+ *
+ * IMPORTANTE: este arquivo evita sintaxe do PHP 8 de propósito, para conseguir
+ * exibir a mensagem abaixo caso a hospedagem ainda esteja no PHP 7.
  */
+
+if (PHP_VERSION_ID < 80000) {
+    http_response_code(500);
+    header('Content-Type: text/html; charset=utf-8');
+    echo '<div style="font-family:sans-serif;max-width:640px;margin:60px auto;padding:24px;'
+        . 'border:1px solid #e0d9c8;border-radius:12px;background:#fffefb;color:#2e3327">'
+        . '<h2>⚠️ Versão do PHP incompatível</h2>'
+        . '<p>Este sistema precisa de <b>PHP 8.0 ou superior</b> — o servidor está usando <b>PHP '
+        . htmlspecialchars(PHP_VERSION) . '</b>.</p>'
+        . '<p><b>Como resolver na HostGator:</b> cPanel → <b>MultiPHP Manager</b> → '
+        . 'selecione o domínio/pasta e escolha <b>PHP 8.1</b> (ou superior) → Apply.</p></div>';
+    exit;
+}
 
 define('BASE_DIR', __DIR__);
 define('UPLOAD_DIR', __DIR__ . '/uploads');
+
+// Detecta automaticamente a subpasta onde o sistema está instalado.
+// Raiz do domínio -> ''  ·  admoema.com.br/coral -> '/coral'
+$scriptDir = str_replace('\\', '/', dirname($_SERVER['SCRIPT_NAME'] ?? '/'));
+define('BASE_URL', rtrim($scriptDir, '/'));
 
 // Servidor embutido do PHP (dev): entrega arquivos estáticos existentes.
 if (PHP_SAPI === 'cli-server') {
@@ -20,9 +41,9 @@ if (PHP_SAPI === 'cli-server') {
 $configFile = file_exists(__DIR__ . '/config.php') ? __DIR__ . '/config.php' : __DIR__ . '/config.example.php';
 $config = require $configFile;
 
-// Autoloader PSR-4 simplificado: App\ -> app/
-spl_autoload_register(function (string $class): void {
-    if (!str_starts_with($class, 'App\\')) return;
+// Autoloader PSR-4 simplificado: App\ -> app/  (sintaxe compatível com PHP 7 de propósito)
+spl_autoload_register(function ($class) {
+    if (strncmp($class, 'App\\', 4) !== 0) return;
     $file = BASE_DIR . '/app/' . str_replace('\\', '/', substr($class, 4)) . '.php';
     if (file_exists($file)) require $file;
 });
@@ -74,5 +95,11 @@ foreach ([
 }
 
 $path = parse_url($_SERVER['REQUEST_URI'], PHP_URL_PATH) ?: '/';
+// Remove o prefixo da subpasta (ex.: '/coral') antes de casar as rotas
+if (BASE_URL !== '' && strncmp($path, BASE_URL, strlen(BASE_URL)) === 0) {
+    $path = substr($path, strlen(BASE_URL));
+}
+// Acesso direto a index.php também cai na raiz do app
+if ($path === '/index.php' || $path === 'index.php') $path = '/';
 $path = rtrim($path, '/') ?: '/';
 $r->dispatch($_SERVER['REQUEST_METHOD'], $path);

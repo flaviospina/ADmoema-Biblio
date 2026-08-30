@@ -1,9 +1,10 @@
 # Coral ADMoema — URLs amigáveis (HostGator / Apache)
+# Funciona na raiz OU em subpasta (ex.: admoema.com.br/coral) sem ajustes:
+# os caminhos abaixo são relativos à pasta onde este arquivo está.
 Options -Indexes
 
 <IfModule mod_rewrite.c>
   RewriteEngine On
-  RewriteBase /
 
   # Bloqueia acesso direto a pastas internas e arquivos sensíveis
   RewriteRule ^app(/|$) - [F,L]
@@ -15,7 +16,7 @@ Options -Indexes
   RewriteCond %{REQUEST_FILENAME} -d
   RewriteRule ^ - [L]
 
-  # Todo o resto passa pelo front controller
+  # Todo o resto passa pelo front controller DESTA pasta
   RewriteRule ^ index.php [L]
 </IfModule>
 

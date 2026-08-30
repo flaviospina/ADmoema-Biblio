@@ -1,5 +1,8 @@
 // Cliente de API — autenticação por sessão PHP (cookie HttpOnly).
 // O localStorage guarda apenas os dados de exibição do usuário.
+// APP_BASE = subpasta de instalação ('' na raiz, '/coral' em admoema.com.br/coral)
+const APP_BASE = window.APP_BASE || '';
+
 const Store = {
   get user() { try { return JSON.parse(localStorage.getItem('cantata_user')); } catch { return null; } },
   set user(v) { v ? localStorage.setItem('cantata_user', JSON.stringify(v)) : localStorage.removeItem('cantata_user'); },
@@ -12,7 +15,7 @@ async function api(path, { method = 'GET', body, form } = {}) {
   if (form) { payload = form; }
   else if (body) { headers['Content-Type'] = 'application/json'; payload = JSON.stringify(body); }
 
-  const res = await fetch(`/api${path}`, { method, headers, body: payload, credentials: 'same-origin' });
+  const res = await fetch(`${APP_BASE}/api${path}`, { method, headers, body: payload, credentials: 'same-origin' });
   const data = await res.json().catch(() => ({}));
 
   if (res.status === 401 && path !== '/auth/login' && path !== '/me') {
