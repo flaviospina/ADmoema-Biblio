@@ -50,11 +50,11 @@ code { background: var(--surface-3); padding: 1px 6px; border-radius: 6px; font-
 }
 .logo { display: flex; align-items: center; gap: 11px; margin: 2px 8px 26px; }
 .logo .mark {
-  width: 40px; height: 40px; border-radius: 12px; background: var(--brand);
-  display: grid; place-items: center; color: #fff; font-size: 19px; flex: none;
+  width: 44px; height: 50px; flex: none; object-fit: contain;
+  filter: drop-shadow(0 2px 5px rgba(35,40,30,.18));
 }
 .logo b { font-size: 16px; line-height: 1.15; }
-.logo small { display: block; color: var(--muted); font-size: 9.5px; letter-spacing: .14em; text-transform: uppercase; margin-top: 3px; }
+.logo small { display: block; color: var(--muted); font-size: 8.5px; line-height: 1.5; letter-spacing: .14em; text-transform: uppercase; margin-top: 3px; }
 .nav-item {
   display: flex; align-items: center; gap: 10px; padding: 10px 13px; border-radius: 10px;
   color: var(--text-soft); text-decoration: none; font-weight: 500; font-size: 13px;

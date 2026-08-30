@@ -7,7 +7,7 @@ $siteUrl = $origin . BASE_URL . '/';
 $ogImage = $origin . BASE_URL . '/assets/img/og-cover.png';
 
 $title = 'Coral ADMoema — Cantata · Ensaio Inteligente';
-$desc  = 'Plataforma do Coral da Assembleia de Deus Ministério Belém (ADMoema): '
+$desc  = 'Plataforma do Coral da Assembleia de Deus — Ministério Belém, Setor 124 Moema (ADMoema): '
        . 'ensaie sua voz em casa com afinação em tempo real por naipe '
        . '(soprano, contralto, tenor e baixo), acompanhe sua evolução e acesse os hinos da cantata.';
 ?>

@@ -51,8 +51,8 @@ function LoginView() {
   let mode = 'login';
   app.innerHTML = `
     <div class="auth-wrap"><div class="card auth-card">
-      <div class="logo"><span class="mark">♪</span><div>
-        <b>ADMoema</b><small>Ministério Belém · Cantata</small></div></div>
+      <div class="logo"><img class="mark" src="${APP_BASE}/assets/img/logo.svg" alt="AD Ministério do Belém" /><div>
+        <b>ADMoema</b><small>Ministério Belém · Setor 124 Moema</small></div></div>
       <div class="tabs">
         <button data-m="login" class="active">Entrar</button>
         <button data-m="register">Criar conta</button>
@@ -129,8 +129,8 @@ function Shell(active, contentFn) {
     <div class="backdrop" id="backdrop"></div>
     <div class="shell">
       <aside class="sidebar" id="sidebar">
-        <div class="logo"><span class="mark">♪</span><div>
-          <b>ADMoema</b><small>Ministério Belém · 124</small></div></div>
+        <div class="logo"><img class="mark" src="${APP_BASE}/assets/img/logo.svg" alt="AD Ministério do Belém" /><div>
+          <b>ADMoema</b><small>Ministério Belém · Setor 124 Moema</small></div></div>
         ${nav.map(([h, l]) =>
           `<a class="nav-item ${active === h ? 'active' : ''}" href="${h}">${l}</a>`).join('')}
         <div class="spacer"></div>
